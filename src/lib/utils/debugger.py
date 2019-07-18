@@ -62,6 +62,11 @@ class Debugger(object):
       self.focal_length = 721.5377
       self.W = 1242
       self.H = 375
+    elif num_classes == 2 or dataset == 'aliperson':
+      self.names = aliperson_class_name
+      self.focal_length = 721.5377
+      self.W = 512
+      self.H = 288
     num_classes = len(self.names)
     self.down_ratio=down_ratio
     # for bird view
@@ -435,6 +440,8 @@ kitti_class_name = [
 gta_class_name = [
   'p', 'v'
 ]
+
+aliperson_class_name = ['person', 'ignore']
 
 pascal_class_name = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", 
   "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", 
