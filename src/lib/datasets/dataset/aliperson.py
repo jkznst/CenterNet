@@ -11,7 +11,7 @@ import os
 import torch.utils.data as data
 
 class AliPerson(data.Dataset):
-  num_classes = 2
+  num_classes = 1
   default_resolution = [512, 288]
   mean = np.array([0.40789654, 0.44719302, 0.47026115],
                    dtype=np.float32).reshape(1, 1, 3)
@@ -37,8 +37,8 @@ class AliPerson(data.Dataset):
           '{}.json').format(split)
     self.max_objs = 128
     self.class_name = [
-      '__background__', 'person', 'ignore']
-    self._valid_ids = [1, 2]
+      '__background__', 'person']
+    self._valid_ids = [1]
     self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
     self.voc_color = [(v // 32 * 64 + 64, (v // 8) % 4 * 64, v % 8 * 32) \
                       for v in range(1, self.num_classes + 1)]

@@ -100,6 +100,8 @@ class CTDetDataset(data.Dataset):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
       cls_id = int(self.cat_ids[ann['category_id']])
+      if cls_id >= num_classes:
+        continue
       if flipped:
         bbox[[0, 2]] = width - bbox[[2, 0]] - 1
       bbox[:2] = affine_transform(bbox[:2], trans_output)
