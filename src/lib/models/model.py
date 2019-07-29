@@ -91,6 +91,6 @@ def save_model(path, epoch, model, optimizer=None):
   torch.save(data, path)
 
 def save_onnx_model(model, path="model.onnx"):
-  dummy_input = torch.randn(1, 3, 512, 288)
+  dummy_input = torch.randn(1, 3, 512, 288, device='cuda')
   torch.onnx.export(model, dummy_input, path, verbose=True)
 
