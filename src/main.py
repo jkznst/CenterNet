@@ -9,7 +9,7 @@ import os
 import torch
 import torch.utils.data
 from opts import opts
-from models.model import create_model, load_model, save_model
+from models.model import create_model, load_model, save_model, save_onnx_model
 from models.data_parallel import DataParallel
 from logger import Logger
 from datasets.dataset_factory import get_dataset
@@ -35,6 +35,7 @@ def main(opt):
   if opt.load_model != '':
     model, optimizer, start_epoch = load_model(
       model, opt.load_model, optimizer, opt.resume, opt.lr, opt.lr_step)
+  save_onnx_model(model, "CenterNet-DLA.onnx")
 
   Trainer = train_factory[opt.task]
   trainer = Trainer(opt, model, optimizer)
