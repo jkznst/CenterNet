@@ -35,7 +35,7 @@ def main(opt):
   if opt.load_model != '':
     model, optimizer, start_epoch = load_model(
       model, opt.load_model, optimizer, opt.resume, opt.lr, opt.lr_step)
-  save_onnx_model(model, "model_last.onnx")
+  # save_onnx_model(model, "model_last.onnx")
 
   Trainer = train_factory[opt.task]
   trainer = Trainer(opt, model, optimizer)
@@ -88,7 +88,7 @@ def main(opt):
     else:
       save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
-      save_onnx_model(model, "model_last.onnx")
+      # save_onnx_model(model, "model_last.onnx")
 
     logger.write('\n')
     if epoch in opt.lr_step:
