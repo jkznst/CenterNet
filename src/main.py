@@ -88,6 +88,8 @@ def main(opt):
     else:
       save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
+      save_onnx_model(model, "model_last.onnx")
+
     logger.write('\n')
     if epoch in opt.lr_step:
       save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(epoch)), 
