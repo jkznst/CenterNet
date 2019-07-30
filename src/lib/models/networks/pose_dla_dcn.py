@@ -488,9 +488,10 @@ class DLASeg(nn.Module):
             y.append(x[i].clone())
         self.ida_up(y, 0, len(y))
 
-        z = {}
+        z = []
         for head in self.heads:
-            z[head] = self.__getattr__(head)(y[-1])
+            # z[head] = self.__getattr__(head)(y[-1])
+            z.append(self.__getattr__(head)(y[-1]))
         return [z]
     
 
