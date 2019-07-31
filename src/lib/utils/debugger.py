@@ -239,7 +239,7 @@ class Debugger(object):
       self.plt.show()
 
   def save_img(self, imgId='default', path='./cache/debug/'):
-    cv2.imwrite(path + '{}.png'.format(imgId), self.imgs[imgId])
+    cv2.imwrite(path + '/{}.png'.format(imgId), self.imgs[imgId])
     
   def save_all_imgs(self, path='./cache/debug/', prefix='', genID=False):
     if genID:
