@@ -91,6 +91,6 @@ def save_model(path, epoch, model, optimizer=None):
   torch.save(data, path)
 
 def save_onnx_model(model, path="model.onnx"):
-  dummy_input = torch.randn(1, 3, 512, 288, requires_grad=True)
+  dummy_input = torch.randn(1, 3, 288, 512, requires_grad=True)
   torch.onnx.export(model, dummy_input, path, verbose=True)
 
