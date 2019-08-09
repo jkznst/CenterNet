@@ -12,6 +12,7 @@ from .dataset.pascal import PascalVOC
 from .dataset.kitti import KITTI
 from .dataset.coco_hp import COCOHP
 from .dataset.aliperson import AliPerson
+from .dataset.aliperson_wider import AliPerson_Wider
 
 
 dataset_factory = {
@@ -19,7 +20,8 @@ dataset_factory = {
   'pascal': PascalVOC,
   'kitti': KITTI,
   'coco_hp': COCOHP,
-  'aliperson': AliPerson
+  'aliperson': AliPerson,
+  'aliperson_wider': AliPerson_Wider
 }
 
 _sample_factory = {
