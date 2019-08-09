@@ -52,6 +52,10 @@ def load_model(model, model_path, optimizer=None, resume=False,
               'loaded shape{}.'.format(
           k, model_state_dict[k].shape, state_dict[k].shape))
         state_dict[k] = model_state_dict[k]
+        # tailor coco heatmap weight
+        # state_dict[k] = state_dict[k][0:1]
+        # assert state_dict[k].shape == model_state_dict[k].shape
+        # print("use person heatmap weight!")
     else:
       print('Drop parameter {}.'.format(k))
   for k in model_state_dict:
