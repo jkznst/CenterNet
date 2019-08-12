@@ -39,15 +39,16 @@ def _slow_neg_loss(pred, gt):
   return loss
 
 
-def _neg_loss(pred, gt):
+def _neg_loss(pred, gt, mask):
   ''' Modified focal loss. Exactly the same as CornerNet.
       Runs faster and costs a little bit more memory
     Arguments:
       pred (batch x c x h x w)
       gt_regr (batch x c x h x w)
+      mask (batch x c x h x w)
   '''
-  pos_inds = gt.eq(1).float()
-  neg_inds = gt.lt(1).float()
+  pos_inds = gt.eq(1).float() * mask
+  neg_inds = gt.lt(1).float() * mask
 
   neg_weights = torch.pow(1 - gt, 4)
 
@@ -119,7 +120,7 @@ class FocalLoss(nn.Module):
 
   def forward(self, out, target, mask):
     mask = mask.expand_as(out).float()
-    return self.neg_loss(out * mask, target * mask)
+    return self.neg_loss(out, target, mask)
 
 class RegLoss(nn.Module):
   '''Regression loss for an output tensor
