@@ -99,6 +99,7 @@ class CTDetDataset(data.Dataset):
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
+      # current ignore strategy
       if ann['category_id'] > num_classes:
         continue
       cls_id = int(self.cat_ids[ann['category_id']])
