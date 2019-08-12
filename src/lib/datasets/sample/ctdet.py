@@ -112,7 +112,7 @@ class CTDetDataset(data.Dataset):
         bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, output_h - 1)
         h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
         if h > 0 and w > 0:
-          hm_mask[0, bbox[1]:bbox[3], bbox[0]:bbox[2]] = 0
+          hm_mask[0, int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])] = 0
 
     for k in range(num_objs):
       ann = anns[k]
