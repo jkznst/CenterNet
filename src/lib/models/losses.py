@@ -117,8 +117,9 @@ class FocalLoss(nn.Module):
     super(FocalLoss, self).__init__()
     self.neg_loss = _neg_loss
 
-  def forward(self, out, target):
-    return self.neg_loss(out, target)
+  def forward(self, out, target, mask):
+    mask = mask.expand_as(out).float()
+    return self.neg_loss(out * mask, target * mask)
 
 class RegLoss(nn.Module):
   '''Regression loss for an output tensor
