@@ -97,22 +97,23 @@ class CTDetDataset(data.Dataset):
                     draw_umich_gaussian
 
     gt_det = []
-    for k in range(num_objs):
-      ann = anns[k]
-      bbox = self._coco_box_to_bbox(ann['bbox'])
-      if ann['category_id'] > num_classes + 1:
-        continue
-      elif ann['category_id'] == num_classes + 1:
-        # ignore class
-        if flipped:
-          bbox[[0, 2]] = width - bbox[[2, 0]] - 1
-        bbox[:2] = affine_transform(bbox[:2], trans_output)
-        bbox[2:] = affine_transform(bbox[2:], trans_output)
-        bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, output_w - 1)
-        bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, output_h - 1)
-        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-        if h > 0 and w > 0:
-          hm_mask[0, int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])] = 0
+    if file_name.find("sur") == 0:
+      for k in range(num_objs):
+        ann = anns[k]
+        bbox = self._coco_box_to_bbox(ann['bbox'])
+        if ann['category_id'] > num_classes + 1:
+          continue
+        elif ann['category_id'] == num_classes + 1:
+          # ignore class
+          if flipped:
+            bbox[[0, 2]] = width - bbox[[2, 0]] - 1
+          bbox[:2] = affine_transform(bbox[:2], trans_output)
+          bbox[2:] = affine_transform(bbox[2:], trans_output)
+          bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, output_w - 1)
+          bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, output_h - 1)
+          h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+          if h > 0 and w > 0:
+            hm_mask[0, int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])] = 0.0
 
     for k in range(num_objs):
       ann = anns[k]
@@ -135,7 +136,7 @@ class CTDetDataset(data.Dataset):
         ct = np.array(
           [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2], dtype=np.float32)
         ct_int = ct.astype(np.int32)
-        if hm_mask[0, ct_int[1], ct_int[0]] == 1:
+        if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
           ind[k] = ct_int[1] * output_w + ct_int[0]
