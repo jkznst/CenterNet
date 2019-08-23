@@ -170,7 +170,8 @@ class CrossStageAggregation(nn.Module):
         out = self.base_bn(out)
         out = self.relu(out)
 
-        out += self.relu(self.dla_bn(self.dla_conv(dla_feat)))
+        out_1 = self.relu(self.dla_bn(self.dla_conv(dla_feat)))
+        out = out + out_1
         if second_stage_feat is not None:
             out += second_stage_feat
         return out
@@ -224,21 +225,24 @@ class FeatureFusion(nn.Module):
     def forward(self, input_feat_list):
         inp_stride4, inp_stride8, inp_stride16, inp_stride32 = input_feat_list
         out_stride4 = inp_stride4
-        out_stride4 += self.stride8_to_4_up(self.stride8_to_4_bn(self.stride8_to_4_conv(inp_stride8)))
-        out_stride4 += self.stride16_to_4_up(self.stride16_to_4_bn(self.stride16_to_4_conv(inp_stride16)))
-        out_stride4 += self.stride32_to_4_up(self.stride32_to_4_bn(self.stride32_to_4_conv(inp_stride32)))
+        out_stride4_path0 = self.stride8_to_4_up(self.stride8_to_4_bn(self.stride8_to_4_conv(inp_stride8)))
+        out_stride4_path1 = self.stride16_to_4_up(self.stride16_to_4_bn(self.stride16_to_4_conv(inp_stride16)))
+        out_stride4_path2 = self.stride32_to_4_up(self.stride32_to_4_bn(self.stride32_to_4_conv(inp_stride32)))
+        out_stride4 = out_stride4 + out_stride4_path0 + out_stride4_path1 + out_stride4_path2
         out_stride4 = self.relu(out_stride4)
 
         out_stride8 = inp_stride8
-        out_stride8 += self.stride4_to_8_bn(self.stride4_to_8_conv(inp_stride4))
-        out_stride8 += self.stride16_to_8_up(self.stride16_to_8_bn(self.stride16_to_8_conv(inp_stride16)))
-        out_stride8 += self.stride32_to_8_up(self.stride32_to_8_bn(self.stride32_to_8_conv(inp_stride32)))
+        out_stride8_path0 = self.stride4_to_8_bn(self.stride4_to_8_conv(inp_stride4))
+        out_stride8_path1 = self.stride16_to_8_up(self.stride16_to_8_bn(self.stride16_to_8_conv(inp_stride16)))
+        out_stride8_path2 = self.stride32_to_8_up(self.stride32_to_8_bn(self.stride32_to_8_conv(inp_stride32)))
+        out_stride8 = out_stride8 + out_stride8_path0 + out_stride8_path1 + out_stride8_path2
         out_stride8 = self.relu(out_stride8)
 
         out_stride16 = inp_stride16
-        out_stride16 += self.stride4_to_16_bn1(self.stride4_to_16_conv1(self.relu(self.stride4_to_16_bn0(self.stride4_to_16_conv0(inp_stride4)))))
-        out_stride16 += self.stride8_to_16_bn(self.stride8_to_16_conv(inp_stride8))
-        out_stride16 += self.stride32_to_16_up(self.stride32_to_16_bn(self.stride32_to_16_conv(inp_stride32)))
+        out_stride16_path0 = self.stride4_to_16_bn1(self.stride4_to_16_conv1(self.relu(self.stride4_to_16_bn0(self.stride4_to_16_conv0(inp_stride4)))))
+        out_stride16_path1 = self.stride8_to_16_bn(self.stride8_to_16_conv(inp_stride8))
+        out_stride16_path2 = self.stride32_to_16_up(self.stride32_to_16_bn(self.stride32_to_16_conv(inp_stride32)))
+        out_stride16 = out_stride16 + out_stride16_path0 + out_stride16_path1 + out_stride16_path2
         out_stride16 = self.relu(out_stride16)
         return [out_stride4, out_stride8, out_stride16]
 
