@@ -68,6 +68,7 @@ class CtdetLoss(torch.nn.Module):
         off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
                              batch['ind'], batch['reg']) / opt.num_stacks
       if opt.reg_proposal and opt.proposal_weight > 0:
+        output['proposal'] = _sigmoid(output['proposal']) # for focal loss
         proposal_loss += self.crit_proposal(output['proposal'], batch['proposal'], batch['hm_mask']) / opt.num_stacks
         
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + \
