@@ -708,7 +708,7 @@ class TwoStageDLASeg(nn.Module):
         for head in self.heads:
             if head == 'proposal':
                 continue
-            out[head] = self.__getattr__(head)(fine_supervision_feat[-1])
+            out[head] = self.__getattr__(head)(coarse_supervision_feat[-1])
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
