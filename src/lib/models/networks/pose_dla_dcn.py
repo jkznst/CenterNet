@@ -386,8 +386,8 @@ class DLA(nn.Module):
         x = self.base_layer(x)
         for i in range(6):
             x = getattr(self, 'level{}'.format(i))(x)
-            print(i)
-            print(x.size())
+            # print(i)
+            # print(x.size())
             y.append(x)
         return y
 
@@ -664,12 +664,12 @@ class TwoStageDLASeg(nn.Module):
 
     def forward(self, x):
         base_feat = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
-        for i in base_feat:
-            print(i.size())
+        # for i in base_feat:
+        #     print(i.size())
 
         dla_feat = self.dla_up(base_feat)  # [4s, 8s, 16s, 32s]
-        for i in dla_feat:
-            print(i.size())
+        # for i in dla_feat:
+        #     print(i.size())
 
         coarse_supervision_feat = []
         for i in range(self.last_level - self.first_level):
@@ -681,6 +681,8 @@ class TwoStageDLASeg(nn.Module):
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
 
         # second stage
+        for i in base_feat:
+            print(i.size())
         second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
         second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
         second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
