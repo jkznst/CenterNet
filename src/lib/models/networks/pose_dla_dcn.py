@@ -143,6 +143,92 @@ class BottleneckX(nn.Module):
 
         return out
 
+class CrossStageAggregation(nn.Module):
+    def __init__(self, in_channel, out_channel):
+        super(CrossStageAggregation, self).__init__()
+        self.base_conv = nn.Conv2d(in_channel, out_channel, kernel_size=1, bias=False)
+        self.base_bn = nn.BatchNorm2d(out_channel, momentum=BN_MOMENTUM)
+
+        self.dla_conv = nn.Conv2d(in_channel, out_channel, kernel_size=1, bias=False)
+        self.dla_bn = nn.BatchNorm2d(out_channel, momentum=BN_MOMENTUM)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, base_feat, dla_feat, second_stage_feat=None):
+        out = self.base_conv(base_feat)
+        out = self.base_bn(out)
+        out = self.relu(out)
+
+        out += self.relu(self.dla_bn(self.dla_conv(dla_feat)))
+        if second_stage_feat is not None:
+            out += second_stage_feat
+        return out
+
+class FeatureFusion(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(FeatureFusion, self).__init__()
+        self.stride8_to_4_conv = nn.Conv2d(in_channels[1], out_channels[0], kernel_size=1, bias=False)
+        self.stride8_to_4_bn = nn.BatchNorm2d(out_channels[0], momentum=BN_MOMENTUM)
+        self.stride8_to_4_up = nn.Upsample(scale_factor=2, mode='nearest')
+
+        self.stride16_to_4_conv = nn.Conv2d(in_channels[2], out_channels[0], kernel_size=1, bias=False)
+        self.stride16_to_4_bn = nn.BatchNorm2d(out_channels[0], momentum=BN_MOMENTUM)
+        self.stride16_to_4_up = nn.Upsample(scale_factor=4, mode='nearest')
+
+        self.stride32_to_4_conv = nn.Conv2d(in_channels[3], out_channels[0], kernel_size=1, bias=False)
+        self.stride32_to_4_bn = nn.BatchNorm2d(out_channels[0], momentum=BN_MOMENTUM)
+        self.stride32_to_4_up = nn.Upsample(scale_factor=8, mode='nearest')
+
+        ########
+        self.stride4_to_8_conv = nn.Conv2d(in_channels[0], out_channels[1], kernel_size=3, stride=2,
+                                           padding=1, bias=False)
+        self.stride4_to_8_bn = nn.BatchNorm2d(out_channels[1], momentum=BN_MOMENTUM)
+
+        self.stride16_to_8_conv = nn.Conv2d(in_channels[2], out_channels[1], kernel_size=1, bias=False)
+        self.stride16_to_8_bn = nn.BatchNorm2d(out_channels[1], momentum=BN_MOMENTUM)
+        self.stride16_to_8_up = nn.Upsample(scale_factor=2, mode='nearest')
+
+        self.stride32_to_8_conv = nn.Conv2d(in_channels[3], out_channels[1], kernel_size=1, bias=False)
+        self.stride32_to_8_bn = nn.BatchNorm2d(out_channels[1], momentum=BN_MOMENTUM)
+        self.stride32_to_8_up = nn.Upsample(scale_factor=4, mode='nearest')
+
+        #########
+        self.stride4_to_16_conv0 = nn.Conv2d(in_channels[0], in_channels[0], kernel_size=3, stride=2,
+                                           padding=1, bias=False)
+        self.stride4_to_16_bn0 = nn.BatchNorm2d(in_channels[0], momentum=BN_MOMENTUM)
+        self.stride4_to_16_conv1 = nn.Conv2d(in_channels[0], out_channels[2], kernel_size=3, stride=2,
+                                           padding=1, bias=False)
+        self.stride4_to_16_bn1 = nn.BatchNorm2d(out_channels[2], momentum=BN_MOMENTUM)
+
+        self.stride8_to_16_conv = nn.Conv2d(in_channels[1], out_channels[2], kernel_size=3, stride=2,
+                                           padding=1, bias=False)
+        self.stride8_to_16_bn = nn.BatchNorm2d(out_channels[2], momentum=BN_MOMENTUM)
+
+        self.stride32_to_16_conv = nn.Conv2d(in_channels[3], out_channels[2], kernel_size=1, bias=False)
+        self.stride32_to_16_bn = nn.BatchNorm2d(out_channels[2], momentum=BN_MOMENTUM)
+        self.stride32_to_16_up = nn.Upsample(scale_factor=2, mode='nearest')
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, input_feat_list):
+        inp_stride4, inp_stride8, inp_stride16, inp_stride32 = input_feat_list
+        out_stride4 = inp_stride4
+        out_stride4 += self.stride8_to_4_up(self.stride8_to_4_bn(self.stride8_to_4_conv(inp_stride8)))
+        out_stride4 += self.stride16_to_4_up(self.stride16_to_4_bn(self.stride16_to_4_conv(inp_stride16)))
+        out_stride4 += self.stride32_to_4_up(self.stride32_to_4_bn(self.stride32_to_4_conv(inp_stride32)))
+        out_stride4 = self.relu(out_stride4)
+
+        out_stride8 = inp_stride8
+        out_stride8 += self.stride4_to_8_bn(self.stride4_to_8_conv(inp_stride4))
+        out_stride8 += self.stride16_to_8_up(self.stride16_to_8_bn(self.stride16_to_8_conv(inp_stride16)))
+        out_stride8 += self.stride32_to_8_up(self.stride32_to_8_bn(self.stride32_to_8_conv(inp_stride32)))
+        out_stride8 = self.relu(out_stride8)
+
+        out_stride16 = inp_stride16
+        out_stride16 += self.stride4_to_16_bn1(self.stride4_to_16_conv1(self.relu(self.stride4_to_16_bn0(self.stride4_to_16_conv0(inp_stride4)))))
+        out_stride16 += self.stride8_to_16_bn(self.stride8_to_16_conv(inp_stride8))
+        out_stride16 += self.stride32_to_16_up(self.stride32_to_16_bn(self.stride32_to_16_conv(inp_stride32)))
+        out_stride16 = self.relu(out_stride16)
+        return [out_stride4, out_stride8, out_stride16]
 
 class Root(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, residual):
@@ -373,20 +459,20 @@ class IDAUp(nn.Module):
         for i in range(1, len(channels)):
             c = channels[i]
             f = int(up_f[i])  
-            # proj = DeformConv(c, o)
-            proj = nn.Sequential(
-                nn.Conv2d(c, o,
-                          kernel_size=3, stride=1,
-                          padding=1, bias=False),
-                nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
-                nn.ReLU(inplace=True))
-            # node = DeformConv(o, o)
-            node = nn.Sequential(
-                nn.Conv2d(o, o,
-                          kernel_size=3, stride=1,
-                          padding=1, bias=False),
-                nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
-                nn.ReLU(inplace=True))
+            proj = DeformConv(c, o)
+            # proj = nn.Sequential(
+            #     nn.Conv2d(c, o,
+            #               kernel_size=3, stride=1,
+            #               padding=1, bias=False),
+            #     nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
+            #     nn.ReLU(inplace=True))
+            node = DeformConv(o, o)
+            # node = nn.Sequential(
+            #     nn.Conv2d(o, o,
+            #               kernel_size=3, stride=1,
+            #               padding=1, bias=False),
+            #     nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
+            #     nn.ReLU(inplace=True))
      
             up = nn.ConvTranspose2d(o, o, f * 2, stride=f, 
                                     padding=f // 2, output_padding=0,
@@ -431,7 +517,7 @@ class DLAUp(nn.Module):
             ida = getattr(self, 'ida_{}'.format(i))
             ida(layers, len(layers) -i - 2, len(layers))
             out.insert(0, layers[-1])
-        return out
+        return out  # [4s, 8s, 16s, 32s]
 
 
 class Interpolate(nn.Module):
@@ -502,10 +588,108 @@ class DLASeg(nn.Module):
             z[head] = self.__getattr__(head)(y[-1])
             # z.append(self.__getattr__(head)(y[-1]))
         return [z]
-    
+
+class TwoStageDLASeg(nn.Module):
+    def __init__(self, base_name, heads, pretrained, down_ratio, final_kernel,
+                 last_level, head_conv, out_channel=0):
+        super(TwoStageDLASeg, self).__init__()
+        assert down_ratio in [2, 4, 8, 16]
+        self.first_level = int(np.log2(down_ratio))
+        self.last_level = last_level
+        self.base = globals()[base_name](pretrained=pretrained)
+        channels = self.base.channels
+        scales = [2 ** i for i in range(len(channels[self.first_level:]))]
+        self.dla_up = DLAUp(self.first_level, channels[self.first_level:], scales)
+
+        if out_channel == 0:
+            out_channel = channels[self.first_level]
+
+        self.ida_up = IDAUp(out_channel, channels[self.first_level:self.last_level],
+                            [2 ** i for i in range(self.last_level - self.first_level)])
+
+        # second stage
+        self.second_stage_bottleneck0 = Bottleneck(inplanes=channels[2], planes=channels[3], stride=2, dilation=1)
+        self.second_stage_bottleneck1 = Bottleneck(inplanes=channels[3], planes=channels[4], stride=2, dilation=1)
+        self.second_stage_bottleneck2 = Bottleneck(inplanes=channels[4], planes=channels[5], stride=2, dilation=1)
+
+        self.second_stage_csa0 = CrossStageAggregation(in_channel=channels[2], out_channel=channels[2])
+        self.second_stage_csa1 = CrossStageAggregation(in_channel=channels[3], out_channel=channels[3])
+        self.second_stage_csa2 = CrossStageAggregation(in_channel=channels[4], out_channel=channels[4])
+        self.second_stage_csa3 = CrossStageAggregation(in_channel=channels[5], out_channel=channels[5])
+
+        self.second_stage_feature_fusion = FeatureFusion(in_channels=channels[self.first_level:],
+                                                         out_channels=channels[self.first_level:self.last_level])
+
+        self.second_stage_ida_up = IDAUp(out_channel, channels[self.first_level:self.last_level],
+                            [2 ** i for i in range(self.last_level - self.first_level)])
+
+        self.heads = heads
+        for head in self.heads:
+            classes = self.heads[head]
+            if head_conv > 0:
+                fc = nn.Sequential(
+                    nn.Conv2d(channels[self.first_level], head_conv,
+                              kernel_size=3, padding=1, bias=True),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(head_conv, classes,
+                              kernel_size=final_kernel, stride=1,
+                              padding=final_kernel // 2, bias=True))
+                if 'hm' in head:
+                    fc[-1].bias.data.fill_(-2.19)
+                else:
+                    fill_fc_weights(fc)
+            else:
+                fc = nn.Conv2d(channels[self.first_level], classes,
+                               kernel_size=final_kernel, stride=1,
+                               padding=final_kernel // 2, bias=True)
+                if 'hm' in head:
+                    fc.bias.data.fill_(-2.19)
+                else:
+                    fill_fc_weights(fc)
+            self.__setattr__(head, fc)
+
+    def forward(self, x):
+        base_feat = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
+
+        dla_feat = self.dla_up(base_feat)  # [4s, 8s, 16s, 32s]
+
+        coarse_supervision_feat = []
+        for i in range(self.last_level - self.first_level):
+            coarse_supervision_feat.append(dla_feat[i].clone()) # [4s, 8s, 16s]
+        self.ida_up(coarse_supervision_feat, 0, len(coarse_supervision_feat))
+
+        out = {}
+        if 'proposal' in self.heads:
+            out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
+
+        # second stage
+        second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
+        second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
+        second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
+        second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
+        second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
+        second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
+        second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
+
+        fine_supervision_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
+                                                                    second_stage_stride16, second_stage_stride32])
+        self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
+
+        for head in self.heads:
+            if head == 'proposal':
+                continue
+            out[head] = self.__getattr__(head)(fine_supervision_feat[-1])
+            # z.append(self.__getattr__(head)(y[-1]))
+        return [out]
 
 def get_pose_net(num_layers, heads, head_conv=256, down_ratio=4):
-  model = DLASeg('dla{}'.format(num_layers), heads,
+  # model = DLASeg('dla{}'.format(num_layers), heads,
+  #                pretrained=True,
+  #                down_ratio=down_ratio,
+  #                final_kernel=1,
+  #                last_level=5,
+  #                head_conv=head_conv)
+  model = TwoStageDLASeg('dla{}'.format(num_layers), heads,
                  pretrained=True,
                  down_ratio=down_ratio,
                  final_kernel=1,

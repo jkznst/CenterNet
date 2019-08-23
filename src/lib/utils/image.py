@@ -123,6 +123,20 @@ def gaussian2D(shape, sigma=1):
     h[h < np.finfo(h.dtype).eps * h.max()] = 0
     return h
 
+def proposal_gaussian2D(shape, sigma=1):
+    m, n = [(ss - 1.) / 2. for ss in shape]
+    y, x = np.ogrid[-m:m+1,-n:n+1]
+    if m > n:
+        ratio = float(m) / float(n)
+        h = np.exp(-(ratio * x * ratio * x + y * y) / (2 * sigma * sigma))
+        h[h < np.finfo(h.dtype).eps * h.max()] = 0
+    else:
+        ratio = float(n) / float(m)
+        h = np.exp(-(x * x + ratio * y * ratio * y) / (2 * sigma * sigma))
+        h[h < np.finfo(h.dtype).eps * h.max()] = 0
+
+    return h
+
 def draw_umich_gaussian(heatmap, center, radius, k=1):
   diameter = 2 * radius + 1
   gaussian = gaussian2D((diameter, diameter), sigma=diameter / 6)
@@ -139,6 +153,35 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
   if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0: # TODO debug
     np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
   return heatmap
+
+
+def draw_proposal_gaussian(heatmap, center, bbox_height, bbox_width, k=1):
+    if bbox_height % 2 == 0:
+        radius_h = bbox_height / 2 - 1
+    else:
+        radius_h = (bbox_height - 1) / 2
+
+    if bbox_width % 2 == 0:
+        radius_w = bbox_width / 2 - 1
+    else:
+        radius_w = (bbox_width - 1) / 2
+
+    diameter_h = 2 * radius_h + 1
+    diameter_w = 2 * radius_w + 1
+    gaussian = proposal_gaussian2D((diameter_h, diameter_w), sigma=max(diameter_h, diameter_w) / 3)
+
+    x, y = int(center[0]), int(center[1])
+
+    height, width = heatmap.shape[0:2]
+
+    left, right = min(x, radius_w), min(width - x, radius_w + 1)
+    top, bottom = min(y, radius_h), min(height - y, radius_h + 1)
+
+    masked_heatmap = heatmap[y - top:y + bottom, x - left:x + right]
+    masked_gaussian = gaussian[radius_h - top:radius_h + bottom, radius_w - left:radius_w + right]
+    if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0:  # TODO debug
+        np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
+    return heatmap
 
 def draw_dense_reg(regmap, heatmap, center, value, radius, is_offset=False):
   diameter = 2 * radius + 1
