@@ -662,8 +662,12 @@ class TwoStageDLASeg(nn.Module):
 
     def forward(self, x):
         base_feat = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
+        for i in base_feat:
+            print(i.size())
 
         dla_feat = self.dla_up(base_feat)  # [4s, 8s, 16s, 32s]
+        for i in dla_feat:
+            print(i.size())
 
         coarse_supervision_feat = []
         for i in range(self.last_level - self.first_level):
