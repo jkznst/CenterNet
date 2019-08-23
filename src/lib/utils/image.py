@@ -166,7 +166,8 @@ def draw_proposal_gaussian(heatmap, center, bbox_height, bbox_width, k=1):
     else:
         radius_w = (bbox_width - 1) / 2
 
-    print(radius_h, radius_w)
+    radius_w = int(radius_w)
+    radius_h = int(radius_h)
     diameter_h = 2 * radius_h + 1
     diameter_w = 2 * radius_w + 1
     gaussian = proposal_gaussian2D((diameter_h, diameter_w), sigma=max(diameter_h, diameter_w) / 3)
