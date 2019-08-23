@@ -79,9 +79,21 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.stride = stride
 
+        if inplanes != planes:
+            self.residual = nn.Sequential(
+                nn.Conv2d(inplanes, planes,
+                          kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+            )
+        else:
+            self.residual = None
+
     def forward(self, x, residual=None):
         if residual is None:
-            residual = x
+            if self.residual is not None:
+                residual = self.residual(x)
+            else:
+                residual = x
 
         out = self.conv1(x)
         out = self.bn1(out)
