@@ -386,6 +386,8 @@ class DLA(nn.Module):
         x = self.base_layer(x)
         for i in range(6):
             x = getattr(self, 'level{}'.format(i))(x)
+            print(i)
+            print(x.size())
             y.append(x)
         return y
 
