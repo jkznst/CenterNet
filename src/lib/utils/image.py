@@ -127,11 +127,11 @@ def proposal_gaussian2D(shape, sigma=1):
     m, n = [(ss - 1.) / 2. for ss in shape]
     y, x = np.ogrid[-m:m+1,-n:n+1]
     if m > n:
-        ratio = float(m) / float(n)
+        ratio = float(2 * m + 1) / float(2 * n + 1)
         h = np.exp(-(ratio * x * ratio * x + y * y) / (2 * sigma * sigma))
         h[h < np.finfo(h.dtype).eps * h.max()] = 0
     else:
-        ratio = float(n) / float(m)
+        ratio = float(2 * n + 1) / float(2 * m + 1)
         h = np.exp(-(x * x + ratio * y * ratio * y) / (2 * sigma * sigma))
         h[h < np.finfo(h.dtype).eps * h.max()] = 0
 
