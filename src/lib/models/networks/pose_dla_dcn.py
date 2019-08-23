@@ -82,7 +82,7 @@ class Bottleneck(nn.Module):
         if inplanes != planes:
             self.residual = nn.Sequential(
                 nn.Conv2d(inplanes, planes,
-                          kernel_size=1, stride=1, bias=False),
+                          kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
             )
         else:
