@@ -18,7 +18,7 @@ class CtdetLoss(torch.nn.Module):
   def __init__(self, opt):
     super(CtdetLoss, self).__init__()
     self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
-    self.crit_proposal = torch.nn.MSELoss()
+    self.crit_proposal = FocalLoss()
     self.crit_reg = RegL1Loss() if opt.reg_loss == 'l1' else \
               RegLoss() if opt.reg_loss == 'sl1' else None
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \
@@ -68,7 +68,7 @@ class CtdetLoss(torch.nn.Module):
         off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
                              batch['ind'], batch['reg']) / opt.num_stacks
       if opt.reg_proposal and opt.proposal_weight > 0:
-        proposal_loss += self.crit_proposal(output['proposal'], batch['proposal']) / opt.num_stacks
+        proposal_loss += self.crit_proposal(output['proposal'], batch['proposal'], batch['hm_mask']) / opt.num_stacks
         
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + \
            opt.off_weight * off_loss + opt.proposal_weight * proposal_loss
