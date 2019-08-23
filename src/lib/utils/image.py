@@ -126,9 +126,11 @@ def gaussian2D(shape, sigma=1):
 def proposal_gaussian2D(shape, sigma=1):
     m, n = [(ss - 1.) / 2. for ss in shape]
     y, x = np.ogrid[-m:m+1,-n:n+1]
+    print(y, x)
     if m > n:
         ratio = float(2 * m + 1) / float(2 * n + 1)
         h = np.exp(-(ratio * x * ratio * x + y * y) / (2 * sigma * sigma))
+        print(h)
         h[h < np.finfo(h.dtype).eps * h.max()] = 0
     else:
         ratio = float(2 * n + 1) / float(2 * m + 1)
@@ -175,9 +177,11 @@ def draw_proposal_gaussian(heatmap, center, bbox_height, bbox_width, k=1):
     x, y = int(center[0]), int(center[1])
 
     height, width = heatmap.shape[0:2]
+    print(height, width)
 
     left, right = min(x, radius_w), min(width - x, radius_w + 1)
     top, bottom = min(y, radius_h), min(height - y, radius_h + 1)
+    print(left, right, top, bottom)
 
     masked_heatmap = heatmap[y - top:y + bottom, x - left:x + right]
     masked_gaussian = gaussian[radius_h - top:radius_h + bottom, radius_w - left:radius_w + right]
