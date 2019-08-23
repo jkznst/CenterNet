@@ -139,7 +139,7 @@ class CTDetDataset(data.Dataset):
         ct_int = ct.astype(np.int32)
         if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm[cls_id], ct_int, radius)
-          draw_proposal_gaussian(proposal, ct_int, int(h), int(w))
+          draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           wh[k] = 1. * w, 1. * h
           ind[k] = ct_int[1] * output_w + ct_int[0]
           reg[k] = ct - ct_int
