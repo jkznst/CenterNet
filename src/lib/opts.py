@@ -324,7 +324,7 @@ class opts(object):
       if opt.reg_offset:
         opt.heads.update({'reg': 2})
       if opt.reg_proposal:
-        opt.heads.update({'proposal': 1})
+        opt.heads.update({'proposal': opt.num_classes})
     elif opt.task == 'multi_pose':
       # assert opt.dataset in ['coco_hp']
       opt.flip_idx = dataset.flip_idx
