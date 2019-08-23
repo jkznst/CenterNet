@@ -684,13 +684,14 @@ class TwoStageDLASeg(nn.Module):
         # second stage
         # for i in base_feat:
         #     print(i.size())
-        second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
+        # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
+        second_stage_stride4 = dla_feat[0]
         second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
-        second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
+        # second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
         second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
-        second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
+        # second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
         second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
-        second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
+        # second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
 
         fine_supervision_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
                                                                     second_stage_stride16, second_stage_stride32])
