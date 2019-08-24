@@ -85,7 +85,7 @@ class CTDetDataset(data.Dataset):
 
     hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
     hm_mask = np.ones((1, output_h, output_w), dtype=np.float32)
-    proposal = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
+    proposal = np.zeros((1, output_h, output_w), dtype=np.float32)
     wh = np.zeros((self.max_objs, 2), dtype=np.float32)
     dense_wh = np.zeros((2, output_h, output_w), dtype=np.float32)
     reg = np.zeros((self.max_objs, 2), dtype=np.float32)
@@ -141,8 +141,8 @@ class CTDetDataset(data.Dataset):
         if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm[cls_id], ct_int, radius)
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
-          # draw_gaussian(proposal[0], ct_int, 1 * (radius + 1))
-          draw_gaussian(proposal[cls_id], ct_int, radius)
+          draw_gaussian(proposal[0], ct_int, 1 * (radius + 1))
+          # draw_gaussian(proposal[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
           ind[k] = ct_int[1] * output_w + ct_int[0]
           reg[k] = ct - ct_int
