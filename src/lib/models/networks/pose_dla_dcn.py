@@ -689,26 +689,26 @@ class TwoStageDLASeg(nn.Module):
         # for i in base_feat:
         #     print(i.size())
         # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
-        # # second_stage_stride4 = dla_feat[0]
-        # second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
+        second_stage_stride4 = dla_feat[0]
+        second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
         # second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
-        # second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
+        second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
         # second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
-        # second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
+        second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
         # second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
         #
-        # second_stage_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
-        #                                                             second_stage_stride16, second_stage_stride32])
-        # fine_supervision_feat = []
-        # for i in second_stage_feat:
-        #     fine_supervision_feat.append(i.clone())  # [4s, 8s, 16s]
+        second_stage_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
+                                                                    second_stage_stride16, second_stage_stride32])
+        fine_supervision_feat = []
+        for i in second_stage_feat:
+            fine_supervision_feat.append(i.clone())  # [4s, 8s, 16s]
 
-        # self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
+        self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
 
         for head in self.heads:
             if head == 'proposal':
                 continue
-            out[head] = self.__getattr__(head)(coarse_supervision_feat[-1])
+            out[head] = self.__getattr__(head)(fine_supervision_feat[-1])
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
