@@ -473,20 +473,20 @@ class IDAUp(nn.Module):
         for i in range(1, len(channels)):
             c = channels[i]
             f = int(up_f[i])  
-            # proj = DeformConv(c, o)
-            proj = nn.Sequential(
-                nn.Conv2d(c, o,
-                          kernel_size=3, stride=1,
-                          padding=1, bias=False),
-                nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
-                nn.ReLU(inplace=True))
-            # node = DeformConv(o, o)
-            node = nn.Sequential(
-                nn.Conv2d(o, o,
-                          kernel_size=3, stride=1,
-                          padding=1, bias=False),
-                nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
-                nn.ReLU(inplace=True))
+            proj = DeformConv(c, o)
+            # proj = nn.Sequential(
+            #     nn.Conv2d(c, o,
+            #               kernel_size=3, stride=1,
+            #               padding=1, bias=False),
+            #     nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
+            #     nn.ReLU(inplace=True))
+            node = DeformConv(o, o)
+            # node = nn.Sequential(
+            #     nn.Conv2d(o, o,
+            #               kernel_size=3, stride=1,
+            #               padding=1, bias=False),
+            #     nn.BatchNorm2d(o, momentum=BN_MOMENTUM),
+            #     nn.ReLU(inplace=True))
      
             up = nn.ConvTranspose2d(o, o, f * 2, stride=f, 
                                     padding=f // 2, output_padding=0,
