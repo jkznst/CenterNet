@@ -14,6 +14,7 @@ import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 
 from .DCNv2.dcn_v2 import DCN
+from models.utils import _sigmoid
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -631,11 +632,16 @@ class TwoStageDLASeg(nn.Module):
         self.second_stage_csa2 = CrossStageAggregation(in_channel=channels[4], out_channel=channels[4])
         self.second_stage_csa3 = CrossStageAggregation(in_channel=channels[5], out_channel=channels[5])
 
-        self.second_stage_feature_fusion = FeatureFusion(in_channels=channels[self.first_level:],
-                                                         out_channels=channels[self.first_level:self.last_level])
+        # self.second_stage_feature_fusion = FeatureFusion(in_channels=channels[self.first_level:],
+        #                                                  out_channels=channels[self.first_level:self.last_level])
+        self.second_stage_dla_up = DLAUp(startp=0, channels=channels[self.first_level:], scales=scales)
 
         self.second_stage_ida_up = IDAUp(out_channel, channels[self.first_level:self.last_level],
                             [2 ** i for i in range(self.last_level - self.first_level)])
+        self.second_stage_dcn0 = DeformConv(channels[self.first_level], channels[self.first_level])
+        self.second_stage_dcn1 = DeformConv(channels[self.first_level], channels[self.first_level])
+        # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
+        # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
         self.heads = heads
         for head in self.heads:
@@ -668,9 +674,9 @@ class TwoStageDLASeg(nn.Module):
 
     def forward(self, x):
         x = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
-        base_feat = []
-        for i in x:
-            base_feat.append(i.clone())
+        # base_feat = []
+        # for i in x:
+        #     base_feat.append(i.clone())
 
         dla_feat = self.dla_up(x)  # [4s, 8s, 16s, 32s]
         # for i in dla_feat:
@@ -684,31 +690,36 @@ class TwoStageDLASeg(nn.Module):
         out = {}
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
+            fine_supervision_feat = coarse_supervision_feat[-1] * _sigmoid(out['proposal'])
+        else:
+            fine_supervision_feat = coarse_supervision_feat[-1]
 
-        # second stage
-        # for i in base_feat:
-        #     print(i.size())
-        second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], dla_feat[0])
-        # second_stage_stride4 = dla_feat[0]
-        second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
-        second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
-        second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
-        second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
-        second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
-        second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
+        fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
+        fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
+
+        # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], coarse_supervision_feat[-1])
+        # # second_stage_stride4 = dla_feat[0]
+        # second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
+        # second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
+        # second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
+        # second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
+        # second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
+        # second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
+        # #
+        # # second_stage_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
+        # #                                                             second_stage_stride16, second_stage_stride32])
+        # second_stage_feat = self.second_stage_dla_up([second_stage_stride4, second_stage_stride8,
+        #                                               second_stage_stride16, second_stage_stride32])
+        # fine_supervision_feat = []
+        # for i in second_stage_feat:
+        #     fine_supervision_feat.append(i.clone())  # [4s, 8s, 16s]
         #
-        second_stage_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
-                                                                    second_stage_stride16, second_stage_stride32])
-        fine_supervision_feat = []
-        for i in second_stage_feat:
-            fine_supervision_feat.append(i.clone())  # [4s, 8s, 16s]
-
-        self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
+        # self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
 
         for head in self.heads:
             if head == 'proposal':
                 continue
-            out[head] = self.__getattr__(head)(fine_supervision_feat[-1])
+            out[head] = self.__getattr__(head)(fine_supervision_feat)
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
