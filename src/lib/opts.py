@@ -163,6 +163,8 @@ class opts(object):
                              help='loss weight for keypoint local offsets.')
     self.parser.add_argument('--wh_weight', type=float, default=0.1,
                              help='loss weight for bounding box size.')
+    self.parser.add_argument('--scale_weight', type=float, default=0.1,
+                             help='loss weight for proposal scale.')
     # multi_pose
     self.parser.add_argument('--hp_weight', type=float, default=1,
                              help='loss weight for human pose offset.')
@@ -325,6 +327,7 @@ class opts(object):
         opt.heads.update({'reg': 2})
       if opt.reg_proposal:
         opt.heads.update({'proposal': 1})
+        opt.heads.update({'scale': 1})
     elif opt.task == 'multi_pose':
       # assert opt.dataset in ['coco_hp']
       opt.flip_idx = dataset.flip_idx
