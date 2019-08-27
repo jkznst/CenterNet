@@ -156,6 +156,17 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
     np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
   return heatmap
 
+def draw_scale(heatmap, bbox, scale=0.0):
+
+    height, width = heatmap.shape[0:2]
+
+    left, right = max(0, np.ceil(bbox[0])), min(width, np.floor(bbox[2]) + 1)
+    top, bottom = max(0, np.ceil(bbox[1])), min(height, np.floor(bbox[3]) + 1)
+
+    masked_heatmap = heatmap[top:bottom, left:right]
+    if min(masked_heatmap.shape) > 0:
+        np.maximum(masked_heatmap, scale, out=masked_heatmap)
+    return heatmap
 
 def draw_proposal_gaussian(heatmap, center, bbox_height, bbox_width, k=1):
     if bbox_height % 2 == 0:
