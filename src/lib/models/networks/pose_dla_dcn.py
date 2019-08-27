@@ -693,8 +693,9 @@ class TwoStageDLASeg(nn.Module):
         fine_supervision_feat = coarse_supervision_feat[-1]
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
+            out['scale'] = self.__getattr__('scale')(coarse_supervision_feat[-1])
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
-            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'])
+            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'], out['scale'])
 
         fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
         fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
@@ -720,7 +721,7 @@ class TwoStageDLASeg(nn.Module):
         # self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
 
         for head in self.heads:
-            if head == 'proposal':
+            if head == 'proposal' or head == 'scale':
                 continue
             out[head] = self.__getattr__(head)(fine_supervision_feat)
             # z.append(self.__getattr__(head)(y[-1]))
