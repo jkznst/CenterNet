@@ -14,7 +14,6 @@ import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 
 from .DCNv2.dcn_v2 import DCN
-from models.utils import _sigmoid
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -691,7 +690,7 @@ class TwoStageDLASeg(nn.Module):
         fine_supervision_feat = coarse_supervision_feat[-1]
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
-            fine_supervision_feat = fine_supervision_feat * _sigmoid(out['proposal'])
+            fine_supervision_feat = fine_supervision_feat * nn.Sigmoid(out['proposal'])
 
         fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
         fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
