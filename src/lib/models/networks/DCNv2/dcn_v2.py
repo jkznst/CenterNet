@@ -76,7 +76,7 @@ class DCNFA(DCN):
                  dilation=1, deformable_groups=1):
         super(DCNFA, self).__init__(in_channels, out_channels,
                                     kernel_size, stride, padding, dilation, deformable_groups)
-        self.conv_offset = nn.Conv2d(2,
+        self.conv_offset = nn.Conv2d(1,
                                     self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1],
                                     kernel_size=(1, 1),
                                     stride=(1, 1),
