@@ -162,6 +162,7 @@ def draw_scale(heatmap, bbox, scale=0.0):
 
     left, right = max(0, np.ceil(bbox[0])), min(width, np.floor(bbox[2]) + 1)
     top, bottom = max(0, np.ceil(bbox[1])), min(height, np.floor(bbox[3]) + 1)
+    left, right, top, bottom = int(left), int(right), int(top), int(bottom)
 
     masked_heatmap = heatmap[top:bottom, left:right]
     if min(masked_heatmap.shape) > 0:
