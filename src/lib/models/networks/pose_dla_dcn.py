@@ -690,9 +690,9 @@ class TwoStageDLASeg(nn.Module):
         out = {}
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
-            fine_supervision_feat = coarse_supervision_feat[-1] * _sigmoid(out['proposal'])
-        else:
-            fine_supervision_feat = coarse_supervision_feat[-1]
+        #     fine_supervision_feat = coarse_supervision_feat[-1] * _sigmoid(out['proposal'])
+        # else:
+        fine_supervision_feat = coarse_supervision_feat[-1]
 
         fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
         fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
