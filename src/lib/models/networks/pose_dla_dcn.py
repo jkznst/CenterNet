@@ -13,7 +13,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 
-from .DCNv2.dcn_v2 import DCN
+from .DCNv2.dcn_v2 import DCN, DCNFA
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -640,6 +640,8 @@ class TwoStageDLASeg(nn.Module):
         self.second_stage_dcn0 = DeformConv(channels[self.first_level], channels[self.first_level])
         self.second_stage_dcn1 = DeformConv(channels[self.first_level], channels[self.first_level])
         self.sigmoid = nn.Sigmoid()
+        self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
+                                      kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
         # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
@@ -691,11 +693,13 @@ class TwoStageDLASeg(nn.Module):
         fine_supervision_feat = coarse_supervision_feat[-1]
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
-            fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
+            # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
+            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'])
 
         fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
         fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
 
+        # method 1
         # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], coarse_supervision_feat[-1])
         # # second_stage_stride4 = dla_feat[0]
         # second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
