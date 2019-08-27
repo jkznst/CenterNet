@@ -639,6 +639,7 @@ class TwoStageDLASeg(nn.Module):
                             [2 ** i for i in range(self.last_level - self.first_level)])
         self.second_stage_dcn0 = DeformConv(channels[self.first_level], channels[self.first_level])
         self.second_stage_dcn1 = DeformConv(channels[self.first_level], channels[self.first_level])
+        self.sigmoid = nn.Sigmoid()
         # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
@@ -690,7 +691,7 @@ class TwoStageDLASeg(nn.Module):
         fine_supervision_feat = coarse_supervision_feat[-1]
         if 'proposal' in self.heads:
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
-            fine_supervision_feat = fine_supervision_feat * nn.Sigmoid(out['proposal'])
+            fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
 
         fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
         fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
