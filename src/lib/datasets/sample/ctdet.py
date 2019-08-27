@@ -10,7 +10,7 @@ import cv2
 import os
 from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
-from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian, draw_proposal_gaussian
+from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian, draw_proposal_gaussian, draw_scale
 from utils.image import draw_dense_reg
 import math
 
@@ -86,6 +86,7 @@ class CTDetDataset(data.Dataset):
     hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
     hm_mask = np.ones((1, output_h, output_w), dtype=np.float32)
     proposal = np.zeros((1, output_h, output_w), dtype=np.float32)
+    proposal_scale = np.zeros((1, output_h, output_w), dtype=np.float32)
     wh = np.zeros((self.max_objs, 2), dtype=np.float32)
     dense_wh = np.zeros((2, output_h, output_w), dtype=np.float32)
     reg = np.zeros((self.max_objs, 2), dtype=np.float32)
@@ -142,6 +143,8 @@ class CTDetDataset(data.Dataset):
           draw_gaussian(hm[cls_id], ct_int, radius)
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
+          scale = np.sqrt(h * w)
+          draw_scale(proposal_scale, bbox, scale)
           # draw_gaussian(proposal[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
           ind[k] = ct_int[1] * output_w + ct_int[0]
@@ -167,6 +170,7 @@ class CTDetDataset(data.Dataset):
       ret.update({'reg': reg})
     if self.opt.reg_proposal:
       ret.update({'proposal': proposal})
+      ret.update({'scale': proposal_scale})
     if self.opt.debug > 0 or not self.split == 'train':
       gt_det = np.array(gt_det, dtype=np.float32) if len(gt_det) > 0 else \
                np.zeros((1, 6), dtype=np.float32)
