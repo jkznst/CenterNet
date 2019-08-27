@@ -70,6 +70,29 @@ class DCN(DCNv2):
         return func(input, offset, mask, self.weight, self.bias)
 
 
+class DCNFA(DCN):
+    def __init__(self, in_channels, out_channels,
+                 kernel_size, stride, padding,
+                 dilation=1, deformable_groups=1):
+        super(DCNFA, self).__init__(in_channels, out_channels,
+                                    kernel_size, stride, padding, dilation, deformable_groups)
+        self.conv_offset_mask = nn.Conv2d(self.in_channels,
+                                          self.deformable_groups * 3 * self.kernel_size[0] * self.kernel_size[1],
+                                          kernel_size=(1, 1),
+                                          stride=(1, 1),
+                                          padding=(0, 0),
+                                          bias=True)
+        self.init_offset()
+
+    def forward(self, input, proposal):
+        out = self.conv_offset_mask(proposal)
+        o1, o2, mask = torch.chunk(out, 3, dim=1)
+        offset = torch.cat((o1, o2), dim=1)
+        mask = torch.sigmoid(mask)
+        func = DCNv2Function(self.stride, self.padding, self.dilation, self.deformable_groups)
+        return func(input, offset, mask, self.weight, self.bias)
+
+
 class DCNv2Pooling(nn.Module):
 
     def __init__(self,
