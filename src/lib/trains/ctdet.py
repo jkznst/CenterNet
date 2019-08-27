@@ -18,17 +18,18 @@ class CtdetLoss(torch.nn.Module):
   def __init__(self, opt):
     super(CtdetLoss, self).__init__()
     self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
-    self.crit_proposal = FocalLoss()
+    self.crit_centerness = FocalLoss()
     self.crit_reg = RegL1Loss() if opt.reg_loss == 'l1' else \
               RegLoss() if opt.reg_loss == 'sl1' else None
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \
               NormRegL1Loss() if opt.norm_wh else \
               RegWeightedL1Loss() if opt.cat_spec_wh else self.crit_reg
+    self.crit_scale = torch.nn.SmoothL1Loss()
     self.opt = opt
 
   def forward(self, outputs, batch):
     opt = self.opt
-    hm_loss, wh_loss, off_loss, proposal_loss = 0, 0, 0, 0
+    hm_loss, wh_loss, off_loss, proposal_loss, proposal_scale_loss = 0, 0, 0, 0, 0
     for s in range(opt.num_stacks):
       output = outputs[s]
       if not opt.mse_loss:
@@ -69,12 +70,14 @@ class CtdetLoss(torch.nn.Module):
                              batch['ind'], batch['reg']) / opt.num_stacks
       if opt.reg_proposal and opt.proposal_weight > 0:
         output['proposal'] = _sigmoid(output['proposal']) # for focal loss
-        proposal_loss += self.crit_proposal(output['proposal'], batch['proposal'], batch['hm_mask']) / opt.num_stacks
+        proposal_loss += self.crit_centerness(output['proposal'], batch['proposal'], batch['hm_mask']) / opt.num_stacks
+        proposal_scale_loss += self.crit_scale(output['scale'], batch['scale']) / opt.num_stacks
         
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + \
-           opt.off_weight * off_loss + opt.proposal_weight * proposal_loss
+           opt.off_weight * off_loss + opt.proposal_weight * proposal_loss + opt.scale_weight * proposal_scale_loss
     if opt.reg_proposal:
-      loss_stats = {'loss': loss, 'proposal_loss': proposal_loss, 'hm_loss': hm_loss,
+      loss_stats = {'loss': loss, 'proposal_loss': proposal_loss, 'scale_loss': proposal_scale_loss,
+                    'hm_loss': hm_loss,
                     'wh_loss': wh_loss, 'off_loss': off_loss}
     else:
       loss_stats = {'loss': loss, 'hm_loss': hm_loss,
@@ -87,7 +90,7 @@ class CtdetTrainer(BaseTrainer):
   
   def _get_losses(self, opt):
     if opt.reg_proposal:
-      loss_states = ['loss', 'proposal_loss', 'hm_loss', 'wh_loss', 'off_loss']
+      loss_states = ['loss', 'proposal_loss', 'scale_loss', 'hm_loss', 'wh_loss', 'off_loss']
     else:
       loss_states = ['loss', 'hm_loss', 'wh_loss', 'off_loss']
     loss = CtdetLoss(opt)
