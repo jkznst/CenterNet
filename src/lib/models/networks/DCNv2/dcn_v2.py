@@ -70,7 +70,7 @@ class DCN(DCNv2):
         return func(input, offset, mask, self.weight, self.bias)
 
 
-class DCNFA(DCN):
+class DCNFA(DCNv2):
     def __init__(self, in_channels, out_channels,
                  kernel_size, stride, padding,
                  dilation=1, deformable_groups=1):
@@ -86,6 +86,12 @@ class DCNFA(DCN):
                                    kernel_size=(1, 1),
                                    stride=(1, 1), padding=(0, 0), bias=True)
         self.init_offset()
+
+    def init_offset(self):
+        self.conv_offset.weight.data.zero_()
+        self.conv_offset.bias.data.zero_()
+        self.conv_mask.weight.data.zero_()
+        self.conv_mask.bias.data.zero_()
 
     def forward(self, input, centerness, scale):
         mask = self.conv_mask(centerness)
