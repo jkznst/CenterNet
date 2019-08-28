@@ -139,6 +139,38 @@ def proposal_gaussian2D(shape, sigma=1):
 
     return h
 
+def draw_sfaf_proposal(heatmap, scale_heatmap,
+                       center, bbox_h, bbox_w, pos_ratio=0.2, ig_ratio=0.5):
+    height, width = heatmap.shape[0:2]
+    x, y = int(center[0]), int(center[1])
+
+    left_ignore = max(0, x - np.floor(bbox_w * ig_ratio / 2.0))
+    right_ignore = min(width, x + np.floor((bbox_w * ig_ratio / 2.0)) + 1)
+    top_ignore = max(0, y - np.floor(bbox_h * ig_ratio / 2.0))
+    bottom_ignore = min(height, y + np.floor((bbox_h * ig_ratio / 2.0)) + 1)
+    left_ignore, right_ignore, top_ignore, bottom_ignore = \
+        int(left_ignore), int(right_ignore), int(top_ignore), int(bottom_ignore)
+
+    masked_ignore_heatmap = heatmap[top_ignore:bottom_ignore, left_ignore:right_ignore]
+    if min(masked_ignore_heatmap.shape) > 0:
+        heatmap[top_ignore:bottom_ignore, left_ignore:right_ignore] = \
+            np.where(masked_ignore_heatmap > 0, masked_ignore_heatmap, -1)
+
+    left = max(0, x - np.floor(bbox_w * pos_ratio / 2.0))
+    right = min(width, x + np.floor((bbox_w * pos_ratio / 2.0)) + 1)
+    top = max(0, y - np.floor(bbox_h * pos_ratio / 2.0))
+    bottom = min(height, y + np.floor((bbox_h * pos_ratio / 2.0)) + 1)
+    left, right, top, bottom = int(left), int(right), int(top), int(bottom)
+
+    masked_heatmap = heatmap[top:bottom, left:right]
+    masked_scale_heatmap = scale_heatmap[top:bottom, left:right]
+    scale = np.sqrt(bbox_h * bbox_w)
+    if min(masked_heatmap.shape) > 0:
+        np.maximum(masked_heatmap, 1.0, out=masked_heatmap)
+        np.maximum(masked_scale_heatmap, scale, out=masked_scale_heatmap)
+
+    return heatmap, scale_heatmap
+
 def draw_umich_gaussian(heatmap, center, radius, k=1):
   diameter = 2 * radius + 1
   gaussian = gaussian2D((diameter, diameter), sigma=diameter / 6)

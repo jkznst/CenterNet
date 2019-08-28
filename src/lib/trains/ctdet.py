@@ -24,7 +24,7 @@ class CtdetLoss(torch.nn.Module):
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \
               NormRegL1Loss() if opt.norm_wh else \
               RegWeightedL1Loss() if opt.cat_spec_wh else self.crit_reg
-    self.crit_scale = torch.nn.SmoothL1Loss()
+    self.crit_scale = torch.nn.SmoothL1Loss(size_average=False)
     self.opt = opt
 
   def forward(self, outputs, batch):
@@ -70,8 +70,11 @@ class CtdetLoss(torch.nn.Module):
                              batch['ind'], batch['reg']) / opt.num_stacks
       if opt.reg_proposal and opt.proposal_weight > 0:
         output['proposal'] = _sigmoid(output['proposal']) # for focal loss
-        proposal_loss += self.crit_centerness(output['proposal'], batch['proposal'], batch['hm_mask']) / opt.num_stacks
-        proposal_scale_loss += self.crit_scale(output['scale'], batch['scale']) / opt.num_stacks
+        ignore_mask = batch['proposal'].gt(-1).float()
+        proposal_loss += self.crit_centerness(output['proposal'], batch['proposal'], ignore_mask) / opt.num_stacks
+        ignore_scale_mask = batch['scale'].gt(0).float()
+        valid_num = ignore_scale_mask.sum()
+        proposal_scale_loss += self.crit_scale(output['scale'] * ignore_scale_mask, batch['scale']) / valid_num / opt.num_stacks
         
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + \
            opt.off_weight * off_loss + opt.proposal_weight * proposal_loss + opt.scale_weight * proposal_scale_loss

@@ -10,7 +10,7 @@ import cv2
 import os
 from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
-from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian, draw_proposal_gaussian, draw_scale
+from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian, draw_proposal_gaussian, draw_scale, draw_sfaf_proposal
 from utils.image import draw_dense_reg
 import math
 
@@ -142,9 +142,10 @@ class CTDetDataset(data.Dataset):
         if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm[cls_id], ct_int, radius)
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
-          draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
-          scale = np.sqrt(h * w)
-          draw_scale(proposal_scale, bbox, scale)
+          # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
+          # scale = np.sqrt(h * w)
+          # draw_scale(proposal_scale[0], bbox, scale)
+          draw_sfaf_proposal(proposal[0], proposal_scale[0], ct_int, h, w)
           # draw_gaussian(proposal[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
           ind[k] = ct_int[1] * output_w + ct_int[0]
