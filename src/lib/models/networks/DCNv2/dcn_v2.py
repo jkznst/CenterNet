@@ -78,13 +78,15 @@ class DCNFA(DCNv2):
                                     kernel_size, stride, padding, dilation, deformable_groups)
         self.conv_offset = nn.Conv2d(1,
                                     self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1],
-                                    kernel_size=(1, 1),
-                                    stride=(1, 1),
-                                    padding=(0, 0),
+                                    kernel_size=self.kernel_size,
+                                    stride=(self.stride, self.stride),
+                                    padding=(self.padding, self.padding),
                                     bias=True)
         self.conv_mask = nn.Conv2d(1, self.deformable_groups * 1 * self.kernel_size[0] * self.kernel_size[1],
-                                   kernel_size=(1, 1),
-                                   stride=(1, 1), padding=(0, 0), bias=True)
+                                   kernel_size=self.kernel_size,
+                                   stride=(self.stride, self.stride),
+                                   padding=(self.padding, self.padding),
+                                   bias=True)
         self.init_offset()
 
     def init_offset(self):
