@@ -13,7 +13,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 
-from .DCNv2.dcn_v2 import DCN, DCNFA
+from .DCNv2.dcn_v2 import DCN, DCNFA, DCNv2
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -465,6 +465,36 @@ class DeformConv(nn.Module):
         x = self.actf(x)
         return x
 
+class FeatureAdaptation(nn.Module):
+    def __init__(self, chi, cho):
+        super(FeatureAdaptation, self).__init__()
+        self.conv_offset = nn.Conv2d(1,
+                                    self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1],
+                                    kernel_size=(1, 1),
+                                    stride=(1, 1),
+                                    padding=(0, 0),
+                                    bias=True)
+        self.conv_mask = nn.Conv2d(1,
+                                    self.deformable_groups * 1 * self.kernel_size[0] * self.kernel_size[1],
+                                    kernel_size=(1, 1),
+                                    stride=(1, 1),
+                                    padding=(0, 0),
+                                    bias=True)
+
+        self.conv_offset.weight.data.zero_()
+        self.conv_offset.bias.data.zero_()
+        self.conv_mask.weight.data.zero_()
+        self.conv_mask.bias.data.zero_()
+
+        self.conv = DCNv2(chi, cho, kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+
+    def forward(self, x, centerness, scale):
+        mask = self.conv_mask(centerness)
+        offset = self.conv_offset(scale)
+        mask = torch.sigmoid(mask)
+        x = self.conv(x, offset, mask)
+        return x
+
 
 class IDAUp(nn.Module):
 
@@ -650,8 +680,10 @@ class TwoStageDLASeg(nn.Module):
         )
         fill_fc_weights(self.second_stage_conv1)
         self.sigmoid = nn.Sigmoid()
-        self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
-                                      kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+        # self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
+        #                               kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+        self.feature_adaptation = FeatureAdaptation(channels[self.first_level], channels[self.first_level])
+
         # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
