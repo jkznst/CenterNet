@@ -639,12 +639,12 @@ class TwoStageDLASeg(nn.Module):
                             [2 ** i for i in range(self.last_level - self.first_level)])
         self.second_stage_conv0 = nn.Sequential(
             nn.Conv2d(channels[self.first_level], head_conv,
-                      kernel=3, padding=1, bias=True),
+                      kernel_size=3, padding=1, bias=True),
             nn.ReLU(inplace=True)
         )
         self.second_stage_conv1 = nn.Sequential(
             nn.Conv2d(head_conv, head_conv,
-                      kernel=3, padding=1, bias=True),
+                      kernel_size=3, padding=1, bias=True),
             nn.ReLU(inplace=True)
         )
         self.sigmoid = nn.Sigmoid()
