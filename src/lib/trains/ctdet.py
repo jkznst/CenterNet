@@ -62,8 +62,7 @@ class CtdetLoss(torch.nn.Module):
             batch['ind'], batch['cat_spec_wh']) / opt.num_stacks
         else:
           if opt.reg_proposal:
-            out_scale = output['scale'].clone()
-            out_scale.requires_grad = False
+            out_scale = output['scale'].detach()
             wh_loss += self.crit_reg(
               output['wh'] + out_scale, batch['reg_mask'],
               batch['ind'], batch['wh']) / opt.num_stacks
