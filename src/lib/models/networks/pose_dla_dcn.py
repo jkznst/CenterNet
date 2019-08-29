@@ -468,6 +468,7 @@ class DeformConv(nn.Module):
 class FeatureAdaptation(nn.Module):
     def __init__(self, chi, cho):
         super(FeatureAdaptation, self).__init__()
+        self.deformable_groups = 1
         self.conv_offset = nn.Conv2d(1,
                                     self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1],
                                     kernel_size=(1, 1),
