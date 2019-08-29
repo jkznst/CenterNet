@@ -61,9 +61,16 @@ class CtdetLoss(torch.nn.Module):
             output['wh'], batch['cat_spec_mask'],
             batch['ind'], batch['cat_spec_wh']) / opt.num_stacks
         else:
-          wh_loss += self.crit_reg(
-            output['wh'], batch['reg_mask'],
-            batch['ind'], batch['wh']) / opt.num_stacks
+          if opt.reg_proposal:
+            out_scale = output['scale'].clone()
+            out_scale.requires_grad = False
+            wh_loss += self.crit_reg(
+              output['wh'] + out_scale, batch['reg_mask'],
+              batch['ind'], batch['wh']) / opt.num_stacks
+          else:
+            wh_loss += self.crit_reg(
+              output['wh'], batch['reg_mask'],
+              batch['ind'], batch['wh']) / opt.num_stacks
       
       if opt.reg_offset and opt.off_weight > 0:
         off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
