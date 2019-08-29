@@ -642,11 +642,13 @@ class TwoStageDLASeg(nn.Module):
                       kernel_size=3, padding=1, bias=True),
             nn.ReLU(inplace=True)
         )
+        fill_fc_weights(self.second_stage_conv0)
         self.second_stage_conv1 = nn.Sequential(
             nn.Conv2d(head_conv, head_conv,
                       kernel_size=3, padding=1, bias=True),
             nn.ReLU(inplace=True)
         )
+        fill_fc_weights(self.second_stage_conv1)
         self.sigmoid = nn.Sigmoid()
         self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
                                       kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
