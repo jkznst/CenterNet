@@ -637,18 +637,8 @@ class TwoStageDLASeg(nn.Module):
 
         self.second_stage_ida_up = IDAUp(out_channel, channels[self.first_level:self.last_level],
                             [2 ** i for i in range(self.last_level - self.first_level)])
-        self.second_stage_conv0 = nn.Sequential(
-            nn.Conv2d(channels[self.first_level], head_conv,
-                      kernel_size=3, padding=1, bias=True),
-            nn.ReLU(inplace=True)
-        )
-        fill_fc_weights(self.second_stage_conv0)
-        self.second_stage_conv1 = nn.Sequential(
-            nn.Conv2d(head_conv, head_conv,
-                      kernel_size=3, padding=1, bias=True),
-            nn.ReLU(inplace=True)
-        )
-        fill_fc_weights(self.second_stage_conv1)
+        self.second_stage_dcn0 = DeformConv(channels[self.first_level], head_conv)
+        self.second_stage_dcn1 = DeformConv(head_conv, head_conv)
         self.sigmoid = nn.Sigmoid()
         self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
                                       kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
@@ -710,8 +700,8 @@ class TwoStageDLASeg(nn.Module):
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
             fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'], out['scale'])
 
-        second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
-        second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
+        fine_supervision_feat = self.second_stage_dcn0(fine_supervision_feat)
+        fine_supervision_feat = self.second_stage_dcn1(fine_supervision_feat)
 
         # method 1
         # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], coarse_supervision_feat[-1])
@@ -736,7 +726,7 @@ class TwoStageDLASeg(nn.Module):
         for head in self.heads:
             if head == 'proposal' or head == 'scale':
                 continue
-            out[head] = self.__getattr__(head)(second_stage_conv1)
+            out[head] = self.__getattr__(head)(fine_supervision_feat)
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
