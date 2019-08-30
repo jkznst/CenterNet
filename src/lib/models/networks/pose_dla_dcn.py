@@ -490,7 +490,8 @@ class FeatureAdaptation(nn.Module):
 
         self.conv = DCNv2(chi, cho, kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
 
-    def forward(self, x, centerness, scale):
+    def forward(self, input_feat_list):
+        x, centerness, scale = input_feat_list
         mask = self.conv_mask(centerness)
         offset = self.conv_offset(scale)
         mask = torch.sigmoid(mask)
@@ -742,7 +743,7 @@ class TwoStageDLASeg(nn.Module):
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
             out['scale'] = self.__getattr__('scale')(coarse_supervision_feat[-1])
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
-            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'], out['scale'])
+            fine_supervision_feat = self.feature_adaptation([fine_supervision_feat, out['proposal'], out['scale']])
 
         second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
         second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
