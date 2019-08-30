@@ -757,8 +757,8 @@ class TwoStageDLASeg(nn.Module):
         out = {}
         fine_supervision_feat = coarse_supervision_feat[-1]
         if 'proposal' in self.heads:
-            out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
             out['scale'] = self.__getattr__('scale')(coarse_supervision_feat[-1])
+            out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
             mask = self.FA_conv_mask(out['proposal'])
             mask = torch.sigmoid(mask)
@@ -788,10 +788,10 @@ class TwoStageDLASeg(nn.Module):
         #
         # self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
 
-        for head in self.heads:
-            if head == 'proposal' or head == 'scale':
-                continue
-            out[head] = self.__getattr__(head)(second_stage_conv1)
+
+        out['hm'] = self.__getattr__('hm')(second_stage_conv1)
+        out['wh'] = self.__getattr__('wh')(second_stage_conv1)
+        out['reg'] = self.__getattr__('reg')(second_stage_conv1)
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
