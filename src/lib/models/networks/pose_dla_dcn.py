@@ -673,19 +673,19 @@ class TwoStageDLASeg(nn.Module):
         self.second_stage_conv0 = nn.Sequential(
             nn.Conv2d(channels[self.first_level], head_conv,
                       kernel_size=3, padding=1, bias=True),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
         fill_fc_weights(self.second_stage_conv0)
         self.second_stage_conv1 = nn.Sequential(
             nn.Conv2d(head_conv, head_conv,
                       kernel_size=3, padding=1, bias=True),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
         fill_fc_weights(self.second_stage_conv1)
         self.sigmoid = nn.Sigmoid()
-        # self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
-        #                               kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
-        self.feature_adaptation = FeatureAdaptation(channels[self.first_level], channels[self.first_level])
+        self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
+                                      kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+        # self.feature_adaptation = FeatureAdaptation(channels[self.first_level], channels[self.first_level])
 
         # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
@@ -743,7 +743,7 @@ class TwoStageDLASeg(nn.Module):
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
             out['scale'] = self.__getattr__('scale')(coarse_supervision_feat[-1])
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
-            fine_supervision_feat = self.feature_adaptation([fine_supervision_feat, out['proposal'], out['scale']])
+            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'], out['scale'])
 
         second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
         second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
