@@ -722,22 +722,21 @@ class TwoStageDLASeg(nn.Module):
                     nn.Conv2d(head_conv, classes,
                               kernel_size=final_kernel, stride=1,
                               padding=final_kernel // 2, bias=True))
+                fill_fc_weights(fc)
                 if 'hm' in head:
                     fc[-1].bias.data.fill_(-2.19)
                 elif 'proposal' in head:
                     fc[-1].bias.data.fill_(-2.19)
-                else:
-                    fill_fc_weights(fc)
             else:
                 fc = nn.Conv2d(in_channel, classes,
                                kernel_size=final_kernel, stride=1,
                                padding=final_kernel // 2, bias=True)
+                fill_fc_weights(fc)
                 if 'hm' in head:
                     fc.bias.data.fill_(-2.19)
                 elif 'proposal' in head:
                     fc.bias.data.fill_(-2.19)
-                else:
-                    fill_fc_weights(fc)
+
             self.__setattr__(head, fc)
 
     def forward(self, x):
