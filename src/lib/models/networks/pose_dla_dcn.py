@@ -683,8 +683,26 @@ class TwoStageDLASeg(nn.Module):
         )
         fill_fc_weights(self.second_stage_conv1)
         self.sigmoid = nn.Sigmoid()
-        self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
+        # self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
+        #                               kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+        self.feature_adaptation = DCNv2(channels[self.first_level], channels[self.first_level],
                                       kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
+        self.FA_conv_mask = nn.Conv2d(1,
+                                    1 * 1 * 3 * 3,
+                                    kernel_size=(3, 3),
+                                    stride=(1, 1),
+                                    padding=(1, 1),
+                                    bias=True)
+        self.FA_conv_offset = nn.Conv2d(1,
+                                    1 * 2 * 3 * 3,
+                                    kernel_size=(3, 3),
+                                    stride=(1, 1),
+                                    padding=(1, 1),
+                                    bias=True)
+        self.FA_conv_offset.weight.data.zero_()
+        self.FA_conv_offset.bias.data.zero_()
+        self.FA_conv_mask.weight.data.zero_()
+        self.FA_conv_mask.bias.data.zero_()
         # self.feature_adaptation = FeatureAdaptation(channels[self.first_level], channels[self.first_level])
 
         # self.second_stage_dcn2 = DeformConv(channels[self.first_level], channels[self.first_level])
@@ -700,7 +718,7 @@ class TwoStageDLASeg(nn.Module):
                 fc = nn.Sequential(
                     nn.Conv2d(in_channel, head_conv,
                               kernel_size=3, padding=1, bias=True),
-                    nn.ReLU(inplace=True),
+                    nn.ReLU(inplace=False),
                     nn.Conv2d(head_conv, classes,
                               kernel_size=final_kernel, stride=1,
                               padding=final_kernel // 2, bias=True))
@@ -743,7 +761,10 @@ class TwoStageDLASeg(nn.Module):
             out['proposal'] = self.__getattr__('proposal')(coarse_supervision_feat[-1])
             out['scale'] = self.__getattr__('scale')(coarse_supervision_feat[-1])
             # fine_supervision_feat = fine_supervision_feat * self.sigmoid(out['proposal'])
-            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, out['proposal'], out['scale'])
+            mask = self.FA_conv_mask(out['proposal'])
+            mask = torch.sigmoid(mask)
+            offset = self.FA_conv_offset(out['scale'])
+            fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, offset, mask)
 
         second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
         second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
