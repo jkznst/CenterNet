@@ -9,7 +9,7 @@ import time
 import torch
 
 from external.nms import soft_nms
-from models.decode import ctdet_decode
+from models.decode import ctdet_decode, ctdet_twostage_decode
 from models.utils import flip_tensor
 from utils.image import get_affine_transform
 from utils.post_process import ctdet_post_process
@@ -27,13 +27,16 @@ class CtdetDetector(BaseDetector):
       hm = output['hm'].sigmoid_()
       wh = output['wh']
       reg = output['reg'] if self.opt.reg_offset else None
+      scale = output['scale'] if self.opt.proposal else None
       if self.opt.flip_test:
         hm = (hm[0:1] + flip_tensor(hm[1:2])) / 2
         wh = (wh[0:1] + flip_tensor(wh[1:2])) / 2
         reg = reg[0:1] if reg is not None else None
+        scale = (scale[0:1] + flip_tensor(scale[0:1])) / 2
       torch.cuda.synchronize()
       forward_time = time.time()
-      dets = ctdet_decode(hm, wh, reg=reg, K=self.opt.K)
+      # dets = ctdet_decode(hm, wh, reg=reg, K=self.opt.K)
+      dets = ctdet_twostage_decode(hm, wh, reg=reg, scale=scale, K=self.opt.K)
       
     if return_time:
       return output, dets, forward_time
