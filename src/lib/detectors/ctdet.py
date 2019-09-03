@@ -27,7 +27,7 @@ class CtdetDetector(BaseDetector):
       hm = output['hm'].sigmoid_()
       wh = output['wh']
       reg = output['reg'] if self.opt.reg_offset else None
-      scale = output['scale'] if self.opt.proposal else None
+      scale = output['scale'] if self.opt.reg_proposal else None
       if self.opt.flip_test:
         hm = (hm[0:1] + flip_tensor(hm[1:2])) / 2
         wh = (wh[0:1] + flip_tensor(wh[1:2])) / 2
