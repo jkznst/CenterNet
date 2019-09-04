@@ -84,8 +84,8 @@ class CTDetDataset(data.Dataset):
     trans_output = get_affine_transform(c, s, 0, [output_w, output_h])
 
     hm_small = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
-    hm_medium = np.zeros((num_classes, output_h / 2, output_w / 2), dtype=np.float32)
-    hm_big = np.zeros((num_classes, output_h / 4, output_w / 4), dtype=np.float32)
+    hm_medium = np.zeros((num_classes, output_h // 2, output_w // 2), dtype=np.float32)
+    hm_big = np.zeros((num_classes, output_h // 4, output_w // 4), dtype=np.float32)
     hm_mask = np.ones((1, output_h, output_w), dtype=np.float32)
     proposal = np.zeros((1, output_h, output_w), dtype=np.float32)
     proposal_scale = np.zeros((1, output_h, output_w), dtype=np.float32)
@@ -181,7 +181,7 @@ class CTDetDataset(data.Dataset):
           draw_sfaf_proposal(proposal[0], proposal_scale[0], ct_int, h, w)
           # draw_gaussian(proposal[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
-          ind[k] = ct_int[1] * output_w / 2 + ct_int[0]
+          ind[k] = ct_int[1] * output_w // 2 + ct_int[0]
           reg[k] = ct - ct_int
           reg_mask_medium[k] = 1
           cat_spec_wh[k, cls_id * 2: cls_id * 2 + 2] = wh[k]
@@ -210,7 +210,7 @@ class CTDetDataset(data.Dataset):
           draw_sfaf_proposal(proposal[0], proposal_scale[0], ct_int, h, w)
           # draw_gaussian(proposal[cls_id], ct_int, radius)
           wh[k] = 1. * w, 1. * h
-          ind[k] = ct_int[1] * output_w / 4 + ct_int[0]
+          ind[k] = ct_int[1] * output_w // 4 + ct_int[0]
           reg[k] = ct - ct_int
           reg_mask_big[k] = 1
           cat_spec_wh[k, cls_id * 2: cls_id * 2 + 2] = wh[k]
