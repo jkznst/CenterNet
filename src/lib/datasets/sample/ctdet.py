@@ -161,7 +161,7 @@ class CTDetDataset(data.Dataset):
             draw_dense_reg(dense_wh, hm_small.max(axis=0), ct_int, wh[k], radius)
           gt_det.append([ct[0] - w / 2, ct[1] - h / 2,
                          ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
-      elif np.sqrt(h * w) >= 32 and np.sqrt(h * w) < 64:
+      elif 32 <= np.sqrt(h * w) < 64:
         h /= 2.0
         w /= 2.0
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
