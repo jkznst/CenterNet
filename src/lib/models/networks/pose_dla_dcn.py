@@ -709,35 +709,64 @@ class TwoStageDLASeg(nn.Module):
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
         self.heads = heads
+        self.scale = ['small', 'medium', 'big']
+        # for head in self.heads:
+        #     classes = self.heads[head]
+        #     in_channel = head_conv
+        #     if head == 'proposal' or head == 'scale':
+        #         in_channel = channels[self.first_level]
+        #     if head_conv > 0:
+        #         fc = nn.Sequential(
+        #             nn.Conv2d(in_channel, head_conv,
+        #                       kernel_size=3, padding=1, bias=True),
+        #             nn.ReLU(inplace=False),
+        #             nn.Conv2d(head_conv, classes,
+        #                       kernel_size=final_kernel, stride=1,
+        #                       padding=final_kernel // 2, bias=True))
+        #         fill_fc_weights(fc)
+        #         if 'hm' in head:
+        #             fc[-1].bias.data.fill_(-2.19)
+        #         elif 'proposal' in head:
+        #             fc[-1].bias.data.fill_(-2.19)
+        #     else:
+        #         fc = nn.Conv2d(in_channel, classes,
+        #                        kernel_size=final_kernel, stride=1,
+        #                        padding=final_kernel // 2, bias=True)
+        #         fill_fc_weights(fc)
+        #         if 'hm' in head:
+        #             fc.bias.data.fill_(-2.19)
+        #         elif 'proposal' in head:
+        #             fc.bias.data.fill_(-2.19)
+        #
+        #     self.__setattr__(head, fc)
+
         for head in self.heads:
             classes = self.heads[head]
-            in_channel = head_conv
-            if head == 'proposal' or head == 'scale':
-                in_channel = channels[self.first_level]
-            if head_conv > 0:
-                fc = nn.Sequential(
-                    nn.Conv2d(in_channel, head_conv,
-                              kernel_size=3, padding=1, bias=True),
-                    nn.ReLU(inplace=False),
-                    nn.Conv2d(head_conv, classes,
-                              kernel_size=final_kernel, stride=1,
-                              padding=final_kernel // 2, bias=True))
-                fill_fc_weights(fc)
-                if 'hm' in head:
-                    fc[-1].bias.data.fill_(-2.19)
-                elif 'proposal' in head:
-                    fc[-1].bias.data.fill_(-2.19)
-            else:
-                fc = nn.Conv2d(in_channel, classes,
-                               kernel_size=final_kernel, stride=1,
-                               padding=final_kernel // 2, bias=True)
-                fill_fc_weights(fc)
-                if 'hm' in head:
-                    fc.bias.data.fill_(-2.19)
-                elif 'proposal' in head:
-                    fc.bias.data.fill_(-2.19)
-
-            self.__setattr__(head, fc)
+            for si, s in enumerate(self.scale):
+                in_channel = channels[self.first_level + si]
+                if head_conv > 0:
+                    fc = nn.Sequential(
+                        nn.Conv2d(in_channel, head_conv,
+                                  kernel_size=3, padding=1, bias=True),
+                        nn.ReLU(inplace=False),
+                        nn.Conv2d(head_conv, classes,
+                                  kernel_size=final_kernel, stride=1,
+                                  padding=final_kernel // 2, bias=True))
+                    fill_fc_weights(fc)
+                    if 'hm' in head:
+                        fc[-1].bias.data.fill_(-2.19)
+                    elif 'proposal' in head:
+                        fc[-1].bias.data.fill_(-2.19)
+                else:
+                    fc = nn.Conv2d(in_channel, classes,
+                                   kernel_size=final_kernel, stride=1,
+                                   padding=final_kernel // 2, bias=True)
+                    fill_fc_weights(fc)
+                    if 'hm' in head:
+                        fc.bias.data.fill_(-2.19)
+                    elif 'proposal' in head:
+                        fc.bias.data.fill_(-2.19)
+                self.__setattr__(head + '_' + s, fc)
 
     def forward(self, x):
         x = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
@@ -765,8 +794,8 @@ class TwoStageDLASeg(nn.Module):
             offset = self.FA_conv_offset(out['scale'])
             fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, offset, mask)
 
-        second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
-        second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
+        # second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
+        # second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
 
         # method 1
         # second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], coarse_supervision_feat[-1])
@@ -789,9 +818,19 @@ class TwoStageDLASeg(nn.Module):
         # self.second_stage_ida_up(fine_supervision_feat, 0, len(fine_supervision_feat))
 
 
-        out['hm'] = self.__getattr__('hm')(second_stage_conv1)
-        out['wh'] = self.__getattr__('wh')(second_stage_conv1)
-        out['reg'] = self.__getattr__('reg')(second_stage_conv1)
+        # out['hm'] = self.__getattr__('hm')(second_stage_conv1)
+        # out['wh'] = self.__getattr__('wh')(second_stage_conv1)
+        # out['reg'] = self.__getattr__('reg')(second_stage_conv1)
+
+        out['hm_small'] = self.__getattr__('hm_small')(dla_feat[0])
+        out['wh_small'] = self.__getattr__('wh_small')(dla_feat[0])
+        out['reg_small'] = self.__getattr__('reg_small')(dla_feat[0])
+        out['hm_medium'] = self.__getattr__('hm_medium')(dla_feat[1])
+        out['wh_medium'] = self.__getattr__('wh_medium')(dla_feat[1])
+        out['reg_medium'] = self.__getattr__('reg_medium')(dla_feat[1])
+        out['hm_big'] = self.__getattr__('hm_big')(dla_feat[2])
+        out['wh_big'] = self.__getattr__('wh_big')(dla_feat[2])
+        out['reg_big'] = self.__getattr__('reg_big')(dla_feat[2])
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 

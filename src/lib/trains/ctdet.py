@@ -33,7 +33,9 @@ class CtdetLoss(torch.nn.Module):
     for s in range(opt.num_stacks):
       output = outputs[s]
       if not opt.mse_loss:
-        output['hm'] = _sigmoid(output['hm'])
+        output['hm_small'] = _sigmoid(output['hm_small'])
+        output['hm_medium'] = _sigmoid(output['hm_medium'])
+        output['hm_big'] = _sigmoid(output['hm_big'])
 
       if opt.eval_oracle_hm:
         output['hm'] = batch['hm']
@@ -48,7 +50,9 @@ class CtdetLoss(torch.nn.Module):
           batch['ind'].detach().cpu().numpy(), 
           output['reg'].shape[3], output['reg'].shape[2])).to(opt.device)
 
-      hm_loss += self.crit(output['hm'], batch['hm'], batch['hm_mask']) / opt.num_stacks
+      hm_loss += self.crit(output['hm_small'], batch['hm_small']) / opt.num_stacks
+      hm_loss += self.crit(output['hm_medium'], batch['hm_medium']) / opt.num_stacks
+      hm_loss += self.crit(output['hm_big'], batch['hm_big']) / opt.num_stacks
       if opt.wh_weight > 0:
         if opt.dense_wh:
           mask_weight = batch['dense_wh_mask'].sum() + 1e-4
@@ -68,12 +72,22 @@ class CtdetLoss(torch.nn.Module):
               batch['ind'], batch['wh']) / opt.num_stacks
           else:
             wh_loss += self.crit_reg(
-              output['wh'], batch['reg_mask'],
+              output['wh_small'], batch['reg_mask_small'],
+              batch['ind'], batch['wh']) / opt.num_stacks
+            wh_loss += self.crit_reg(
+              output['wh_medium'], batch['reg_mask_medium'],
+              batch['ind'], batch['wh']) / opt.num_stacks
+            wh_loss += self.crit_reg(
+              output['wh_big'], batch['reg_mask_big'],
               batch['ind'], batch['wh']) / opt.num_stacks
       
       if opt.reg_offset and opt.off_weight > 0:
-        off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
+        off_loss += self.crit_reg(output['reg_small'], batch['reg_mask_small'],
                              batch['ind'], batch['reg']) / opt.num_stacks
+        off_loss += self.crit_reg(output['reg_medium'], batch['reg_mask_medium'],
+                                  batch['ind'], batch['reg']) / opt.num_stacks
+        off_loss += self.crit_reg(output['reg_big'], batch['reg_mask_big'],
+                                  batch['ind'], batch['reg']) / opt.num_stacks
       if opt.reg_proposal and opt.proposal_weight > 0:
         output['proposal'] = _sigmoid(output['proposal']) # for focal loss
         ignore_mask = batch['proposal'].gt(-1).float()
