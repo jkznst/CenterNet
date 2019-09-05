@@ -654,6 +654,31 @@ class TwoStageDLASeg(nn.Module):
         self.ida_up = IDAUp(out_channel, channels[self.first_level:self.last_level],
                             [2 ** i for i in range(self.last_level - self.first_level)])
 
+        self.ida_middle_proj_4s_to_8s = DeformConv(channels[self.first_level], channels[self.first_level])
+        self.ida_middle_down_4s_to_8s = nn.Conv2d(channels[self.first_level], channels[self.first_level + 1],
+                                                  kernel_size=3, stride=2, padding=1, bias=False, groups=channels[self.first_level])
+        self.ida_middle_node1 = DeformConv(channels[self.first_level + 1], channels[self.first_level + 1])
+        self.ida_middle_proj_16s_to_8s = DeformConv(channels[self.first_level + 2], channels[self.first_level + 1])
+        self.ida_middle_up_16s_to_8s = nn.ConvTranspose2d(channels[self.first_level + 1], channels[self.first_level + 1],
+                                                          2 * 2, stride=2,
+                                    padding=2 // 2, output_padding=0,
+                                    groups=channels[self.first_level + 1], bias=False)
+        fill_up_weights(self.ida_middle_up_16s_to_8s)
+        self.ida_middle_node2 = DeformConv(channels[self.first_level + 1], channels[self.first_level + 1])
+
+        self.ida_big_proj_4s_to_16s = DeformConv(channels[self.first_level], channels[self.first_level])
+        self.ida_big_down_4s_to_16s_1 = nn.Conv2d(channels[self.first_level], channels[self.first_level],
+                                                  kernel_size=3, stride=2, padding=1, bias=False, groups=channels[self.first_level])
+        self.ida_big_down_4s_to_16s_2 = nn.Conv2d(channels[self.first_level], channels[self.first_level + 2],
+                                                  kernel_size=3, stride=2, padding=1, bias=False,
+                                                  groups=channels[self.first_level])
+        self.ida_big_node1 = DeformConv(channels[self.first_level + 2], channels[self.first_level + 2])
+        self.ida_big_proj_8s_to_16s = DeformConv(channels[self.first_level + 1], channels[self.first_level + 1])
+        self.ida_big_down_8s_to_16s = nn.Conv2d(channels[self.first_level + 1], channels[self.first_level + 2],
+                                                  kernel_size=3, stride=2, padding=1, bias=False,
+                                                  groups=channels[self.first_level + 1])
+        self.ida_big_node2 = DeformConv(channels[self.first_level + 2], channels[self.first_level + 2])
+
         # second stage
         self.second_stage_bottleneck0 = Bottleneck(inplanes=channels[2], planes=channels[3], stride=2, dilation=1)
         self.second_stage_bottleneck1 = Bottleneck(inplanes=channels[3], planes=channels[4], stride=2, dilation=1)
@@ -683,6 +708,7 @@ class TwoStageDLASeg(nn.Module):
         )
         fill_fc_weights(self.second_stage_conv1)
         self.sigmoid = nn.Sigmoid()
+        self.relu = nn.ReLU(inplace=False)
         # self.feature_adaptation = DCNFA(channels[self.first_level], channels[self.first_level],
         #                               kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
         self.feature_adaptation = DCNv2(channels[self.first_level], channels[self.first_level],
@@ -794,6 +820,15 @@ class TwoStageDLASeg(nn.Module):
             offset = self.FA_conv_offset(out['scale'])
             fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, offset, mask)
 
+        middle_feat = self.ida_middle_down_4s_to_8s(self.ida_middle_proj_4s_to_8s(dla_feat[0]))
+        middle_feat = self.ida_middle_node1(middle_feat + dla_feat[1])
+        middle_feat = middle_feat + self.ida_middle_up_16s_to_8s(self.ida_middle_proj_16s_to_8s(dla_feat[2]))
+        middle_feat = self.ida_middle_node2(middle_feat)
+
+        big_feat = self.ida_big_down_8s_to_16s(self.ida_big_proj_8s_to_16s(dla_feat[1]))
+        big_feat = self.ida_big_node1(big_feat + dla_feat[2])
+        big_feat = big_feat + self.ida_big_down_4s_to_16s_2(self.relu(self.ida_big_down_4s_to_16s_1(self.ida_big_proj_4s_to_16s(dla_feat[0]))))
+        big_feat = self.ida_big_node2(big_feat)
         # second_stage_conv0 = self.second_stage_conv0(fine_supervision_feat)
         # second_stage_conv1 = self.second_stage_conv1(second_stage_conv0)
 
@@ -822,15 +857,15 @@ class TwoStageDLASeg(nn.Module):
         # out['wh'] = self.__getattr__('wh')(second_stage_conv1)
         # out['reg'] = self.__getattr__('reg')(second_stage_conv1)
 
-        out['hm_small'] = self.__getattr__('hm_small')(dla_feat[0])
-        out['wh_small'] = self.__getattr__('wh_small')(dla_feat[0])
-        out['reg_small'] = self.__getattr__('reg_small')(dla_feat[0])
-        out['hm_medium'] = self.__getattr__('hm_medium')(dla_feat[1])
-        out['wh_medium'] = self.__getattr__('wh_medium')(dla_feat[1])
-        out['reg_medium'] = self.__getattr__('reg_medium')(dla_feat[1])
-        out['hm_big'] = self.__getattr__('hm_big')(dla_feat[2])
-        out['wh_big'] = self.__getattr__('wh_big')(dla_feat[2])
-        out['reg_big'] = self.__getattr__('reg_big')(dla_feat[2])
+        out['hm_small'] = self.__getattr__('hm_small')(fine_supervision_feat)
+        out['wh_small'] = self.__getattr__('wh_small')(fine_supervision_feat)
+        out['reg_small'] = self.__getattr__('reg_small')(fine_supervision_feat)
+        out['hm_medium'] = self.__getattr__('hm_medium')(middle_feat)
+        out['wh_medium'] = self.__getattr__('wh_medium')(middle_feat)
+        out['reg_medium'] = self.__getattr__('reg_medium')(middle_feat)
+        out['hm_big'] = self.__getattr__('hm_big')(big_feat)
+        out['wh_big'] = self.__getattr__('wh_big')(big_feat)
+        out['reg_big'] = self.__getattr__('reg_big')(big_feat)
             # z.append(self.__getattr__(head)(y[-1]))
         return [out]
 
