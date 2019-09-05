@@ -531,6 +531,110 @@ def ctdet_twostage_decode(heat, wh, reg=None, scale=None, cat_spec_wh=False, K=1
 
     return detections
 
+def ctdet_multiscale_decode(heat_small, heat_medium, heat_big,
+                            wh_small, wh_medium, wh_big,
+                            reg_small=None, reg_medium=None, reg_big=None,
+                            scale=None, cat_spec_wh=False, K=100):
+    batch, cat, height, width = heat_small.size()
+
+    # heat = torch.sigmoid(heat)
+    # perform nms on heatmaps
+    heat_small = _nms(heat_small)
+    heat_medium = _nms(heat_medium)
+    heat_big = _nms(heat_big)
+
+    scores_small, inds_small, clses_small, ys_small, xs_small = _topk(heat_small, K=K)
+    if reg_small is not None:
+        reg_small = _tranpose_and_gather_feat(reg_small, inds_small)
+        reg_small = reg_small.view(batch, K, 2)
+        xs_small = xs_small.view(batch, K, 1) + reg_small[:, :, 0:1]
+        ys_small = ys_small.view(batch, K, 1) + reg_small[:, :, 1:2]
+    else:
+        xs_small = xs_small.view(batch, K, 1) + 0.5
+        ys_small = ys_small.view(batch, K, 1) + 0.5
+    wh_small = _tranpose_and_gather_feat(wh_small, inds_small)
+    # if scale is not None:
+    #     scale = _tranpose_and_gather_feat(scale, inds)
+    #     wh += scale
+    if cat_spec_wh:
+        wh_small = wh_small.view(batch, K, cat, 2)
+        clses_ind = clses_small.view(batch, K, 1, 1).expand(batch, K, 1, 2).long()
+        wh_small = wh_small.gather(2, clses_ind).view(batch, K, 2)
+    else:
+        wh_small = wh_small.view(batch, K, 2)
+    clses_small = clses_small.view(batch, K, 1).float()
+    scores_small = scores_small.view(batch, K, 1)
+    bboxes_small= torch.cat([xs_small - wh_small[..., 0:1] / 2,
+                        ys_small - wh_small[..., 1:2] / 2,
+                        xs_small + wh_small[..., 0:1] / 2,
+                        ys_small + wh_small[..., 1:2] / 2], dim=2)
+
+    scores_medium, inds_medium, clses_medium, ys_medium, xs_medium = _topk(heat_medium, K=K)
+    if reg_medium is not None:
+        reg_medium = _tranpose_and_gather_feat(reg_medium, inds_medium)
+        reg_medium = reg_medium.view(batch, K, 2)
+        xs_medium = xs_medium.view(batch, K, 1) + reg_medium[:, :, 0:1]
+        ys_medium = ys_medium.view(batch, K, 1) + reg_medium[:, :, 1:2]
+    else:
+        xs_medium = xs_medium.view(batch, K, 1) + 0.5
+        ys_medium = ys_medium.view(batch, K, 1) + 0.5
+    wh_medium = _tranpose_and_gather_feat(wh_medium, inds_medium)
+    # if scale is not None:
+    #     scale = _tranpose_and_gather_feat(scale, inds)
+    #     wh += scale
+    if cat_spec_wh:
+        wh_medium = wh_medium.view(batch, K, cat, 2)
+        clses_ind = clses_medium.view(batch, K, 1, 1).expand(batch, K, 1, 2).long()
+        wh_medium = wh_medium.gather(2, clses_ind).view(batch, K, 2)
+    else:
+        wh_medium = wh_medium.view(batch, K, 2)
+    clses_medium = clses_medium.view(batch, K, 1).float()
+    scores_medium = scores_medium.view(batch, K, 1)
+    bboxes_medium = torch.cat([xs_medium - wh_medium[..., 0:1] / 2,
+                              ys_medium - wh_medium[..., 1:2] / 2,
+                              xs_medium + wh_medium[..., 0:1] / 2,
+                              ys_medium + wh_medium[..., 1:2] / 2], dim=2)
+    bboxes_medium *= 2.0
+
+    scores_big, inds_big, clses_big, ys_big, xs_big = _topk(heat_big, K=K)
+    if reg_big is not None:
+        reg_big = _tranpose_and_gather_feat(reg_big, inds_big)
+        reg_big = reg_big.view(batch, K, 2)
+        xs_big = xs_big.view(batch, K, 1) + reg_big[:, :, 0:1]
+        ys_big = ys_big.view(batch, K, 1) + reg_big[:, :, 1:2]
+    else:
+        xs_big = xs_big.view(batch, K, 1) + 0.5
+        ys_big = ys_big.view(batch, K, 1) + 0.5
+    wh_big = _tranpose_and_gather_feat(wh_big, inds_big)
+    # if scale is not None:
+    #     scale = _tranpose_and_gather_feat(scale, inds)
+    #     wh += scale
+    if cat_spec_wh:
+        wh_big = wh_big.view(batch, K, cat, 2)
+        clses_ind = clses_big.view(batch, K, 1, 1).expand(batch, K, 1, 2).long()
+        wh_big = wh_big.gather(2, clses_ind).view(batch, K, 2)
+    else:
+        wh_big = wh_big.view(batch, K, 2)
+    clses_big = clses_big.view(batch, K, 1).float()
+    scores_big = scores_big.view(batch, K, 1)
+    bboxes_big = torch.cat([xs_big - wh_big[..., 0:1] / 2,
+                               ys_big - wh_big[..., 1:2] / 2,
+                               xs_big + wh_big[..., 0:1] / 2,
+                               ys_big + wh_big[..., 1:2] / 2], dim=2)
+    bboxes_big *= 4.0
+
+    clses = torch.cat([clses_small, clses_medium, clses_big], dim=1)
+    scores = torch.cat([scores_small, scores_medium, scores_big], dim=1)    # (batch, 3K, 1)
+    bboxes = torch.cat([bboxes_small, bboxes_medium, bboxes_big], dim=1)
+
+    topk_scores, topk_inds = torch.topk(scores.view(batch, -1), K, dim=1)   # (batch, K)
+    topk_clses = _gather_feat(clses.view(batch, -1, 1), topk_inds).view(batch, K, 1)
+    topk_bboxes = _gather_feat(bboxes.view(batch, -1, 4), topk_inds).view(batch, K, 4)
+
+    detections = torch.cat([topk_bboxes, topk_scores.view(batch, K, 1), topk_clses], dim=2)
+
+    return detections
+
 def multi_pose_decode(
     heat, wh, kps, reg=None, hm_hp=None, hp_offset=None, K=100):
   batch, cat, height, width = heat.size()

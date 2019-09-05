@@ -9,7 +9,7 @@ import time
 import torch
 
 from external.nms import soft_nms
-from models.decode import ctdet_decode, ctdet_twostage_decode
+from models.decode import ctdet_decode, ctdet_twostage_decode, ctdet_multiscale_decode
 from models.utils import flip_tensor
 from utils.image import get_affine_transform
 from utils.post_process import ctdet_post_process
@@ -38,6 +38,43 @@ class CtdetDetector(BaseDetector):
       # dets = ctdet_decode(hm, wh, reg=reg, K=self.opt.K)
       dets = ctdet_twostage_decode(hm, wh, reg=reg, scale=scale, K=self.opt.K)
       
+    if return_time:
+      return output, dets, forward_time
+    else:
+      return output, dets
+
+  def multiscale_process(self, images, return_time=False):
+    with torch.no_grad():
+      output = self.model(images)[-1]
+      hm_small = output['hm_small'].sigmoid_()
+      hm_medium = output['hm_medium'].sigmoid_()
+      hm_big = output['hm_big'].sigmoid_()
+      wh_small = output['wh_small']
+      wh_medium = output['wh_medium']
+      wh_big = output['wh_big']
+      reg_small = output['reg_small'] if self.opt.reg_offset else None
+      reg_medium = output['reg_medium'] if self.opt.reg_offset else None
+      reg_big = output['reg_big'] if self.opt.reg_offset else None
+      scale = output['scale'] if self.opt.reg_proposal else None
+      if self.opt.flip_test:
+        hm_small = (hm_small[0:1] + flip_tensor(hm_small[1:2])) / 2
+        wh_small = (wh_small[0:1] + flip_tensor(wh_small[1:2])) / 2
+        reg_small = reg_small[0:1] if reg_small is not None else None
+        hm_medium = (hm_medium[0:1] + flip_tensor(hm_medium[1:2])) / 2
+        wh_medium = (wh_medium[0:1] + flip_tensor(wh_medium[1:2])) / 2
+        reg_medium = reg_medium[0:1] if reg_medium is not None else None
+        hm_big = (hm_big[0:1] + flip_tensor(hm_big[1:2])) / 2
+        wh_big = (wh_big[0:1] + flip_tensor(wh_big[1:2])) / 2
+        reg_big = reg_big[0:1] if reg_big is not None else None
+        scale = (scale[0:1] + flip_tensor(scale[0:1])) / 2
+      torch.cuda.synchronize()
+      forward_time = time.time()
+      # dets = ctdet_decode(hm, wh, reg=reg, K=self.opt.K)
+      dets = ctdet_multiscale_decode(hm_small, hm_medium, hm_big,
+                                     wh_small, wh_medium, wh_big,
+                                     reg_small, reg_medium, reg_big,
+                                     scale=scale, K=self.opt.K)
+
     if return_time:
       return output, dets, forward_time
     else:
