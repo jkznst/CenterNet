@@ -16,10 +16,6 @@ from utils.zipreader import ZipReader
 import math
 
 class CTDetDataset(data.Dataset):
-  def __init__(self):
-    super(CTDetDataset, self).__init__()
-    self.zip_reader = ZipReader(flags=cv2.IMREAD_COLOR, oss_bucket=self.opt.oss)
-
   def _coco_box_to_bbox(self, box):
     bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
                     dtype=np.float32)
@@ -45,6 +41,7 @@ class CTDetDataset(data.Dataset):
       img = cv2.imread(img_path)
     else:
       img_path = os.path.join(self.img_dir, '@', file_name)
+      self.zip_reader = ZipReader(flags=cv2.IMREAD_COLOR, oss_bucket=self.opt.oss)
       img = self.zip_reader.imread(img_path)
 
     height, width = img.shape[0], img.shape[1]
