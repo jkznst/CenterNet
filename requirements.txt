@@ -1,7 +1,8 @@
-opencv-python
+opencv-python-headless
 Cython
 numba
 progress
 matplotlib
 easydict
 scipy
+oss2
