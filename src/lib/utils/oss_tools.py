@@ -28,8 +28,6 @@ class OSS_Bucket(object):
     @classmethod
     def set(cls, flag):
         cls.oss_bucket = flag
-        auth = oss2.Auth('LTAIe9NzfWxbEbLY', 'SMTRnHzGHp1cU8Tqr0rWUchRACBsI5')
-        cls.bucket = oss2.Bucket(auth, 'cn-hangzhou.oss.aliyun-inc.com', 'alg-misc')
 
 def torch_load(path):
     if OSS_Bucket.oss_bucket:
