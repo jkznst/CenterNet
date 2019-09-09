@@ -12,9 +12,14 @@ from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
 from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian, draw_proposal_gaussian, draw_scale, draw_sfaf_proposal
 from utils.image import draw_dense_reg
+from utils.zipreader import ZipReader
 import math
 
 class CTDetDataset(data.Dataset):
+  def __init__(self):
+    super(CTDetDataset, self).__init__()
+    self.zip_reader = ZipReader(flags=cv2.IMREAD_COLOR, oss_bucket=self.opt.oss)
+
   def _coco_box_to_bbox(self, box):
     bbox = np.array([box[0], box[1], box[0] + box[2], box[1] + box[3]],
                     dtype=np.float32)
@@ -29,12 +34,18 @@ class CTDetDataset(data.Dataset):
   def __getitem__(self, index):
     img_id = self.images[index]
     file_name = self.coco.loadImgs(ids=[img_id])[0]['file_name']
-    img_path = os.path.join(self.img_dir, file_name)
+
     ann_ids = self.coco.getAnnIds(imgIds=[img_id])
     anns = self.coco.loadAnns(ids=ann_ids)
     num_objs = min(len(anns), self.max_objs)
 
-    img = cv2.imread(img_path)
+    # self.zip_reader = ZipReader(flags=cv2.IMREAD_COLOR, oss_bucket=self.opt.oss)
+    if not self.opt.oss:
+      img_path = os.path.join(self.img_dir, file_name)
+      img = cv2.imread(img_path)
+    else:
+      img_path = os.path.join(self.img_dir, '@', file_name)
+      img = self.zip_reader.imread(img_path)
 
     height, width = img.shape[0], img.shape[1]
     c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
@@ -145,6 +156,14 @@ class CTDetDataset(data.Dataset):
         ct_int = ct.astype(np.int32)
         if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm_small[cls_id], ct_int, radius)
+          # the same regions of adjcent levels are set as IR
+          ct_medium = ct / 2.0
+          ct_medium_int = ct_medium.astype(np.int32)
+          radius_medium = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
+          radius_medium = max(0, int(radius_medium))
+          radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
+          draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
+          hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
@@ -174,6 +193,22 @@ class CTDetDataset(data.Dataset):
         ct_int = ct.astype(np.int32)
         if hm_mask[0, ct_int[1] * 2, ct_int[0] * 2] > 0:
           draw_gaussian(hm_medium[cls_id], ct_int, radius)
+          # the same regions of adjcent levels are set as IR
+          ct_small = ct * 2.0
+          ct_small_int = ct_small.astype(np.int32)
+          radius_small = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
+          radius_small = max(0, int(radius_small))
+          radius_small = self.opt.hm_gauss if self.opt.mse_loss else radius_small
+          draw_gaussian(hm_small[cls_id], ct_small_int, radius_small)
+          hm_small[cls_id, ct_small_int[1], ct_small_int[0]] = 0.9999
+
+          ct_big = ct / 2.0
+          ct_big_int = ct_big.astype(np.int32)
+          radius_big = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
+          radius_big = max(0, int(radius_big))
+          radius_big = self.opt.hm_gauss if self.opt.mse_loss else radius_big
+          draw_gaussian(hm_big[cls_id], ct_big_int, radius_big)
+          hm_big[cls_id, ct_big_int[1], ct_big_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
@@ -190,7 +225,7 @@ class CTDetDataset(data.Dataset):
             draw_dense_reg(dense_wh, hm_small.max(axis=0), ct_int, wh[k], radius)
           gt_det.append([2 * (ct[0] - w / 2), 2 * (ct[1] - h / 2),
                          2 * (ct[0] + w / 2), 2 * (ct[1] + h / 2), 1, cls_id])
-      elif np.sqrt(h * w) >=64:
+      elif np.sqrt(h * w) >= 64:
         h /= 4.0
         w /= 4.0
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
@@ -203,6 +238,14 @@ class CTDetDataset(data.Dataset):
         ct_int = ct.astype(np.int32)
         if hm_mask[0, ct_int[1] * 4, ct_int[0] * 4] > 0:
           draw_gaussian(hm_big[cls_id], ct_int, radius)
+          # the same regions of adjcent levels are set as IR
+          ct_medium = ct * 2.0
+          ct_medium_int = ct_medium.astype(np.int32)
+          radius_medium = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
+          radius_medium = max(0, int(radius_medium))
+          radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
+          draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
+          hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
