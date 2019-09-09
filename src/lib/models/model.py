@@ -6,12 +6,14 @@ import torchvision.models as models
 import torch
 import torch.nn as nn
 import os
+import tempfile
 
 from .networks.msra_resnet import get_pose_net
 from .networks.dlav0 import get_pose_net as get_dlav0
 from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
 from .networks.resnet_dcn import get_pose_net as get_pose_net_dcn
 from .networks.large_hourglass import get_large_hourglass_net
+from utils.oss_tools import OSS_Bucket
 
 _model_factory = {
   'res': get_pose_net, # default Resnet with deconv
@@ -31,7 +33,17 @@ def create_model(arch, heads, head_conv):
 def load_model(model, model_path, optimizer=None, resume=False, 
                lr=None, lr_step=None):
   start_epoch = 0
-  checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
+
+  if OSS_Bucket.oss_bucket:
+    tmp = tempfile.NamedTemporaryFile()
+    try:
+      OSS_Bucket.bucket.get_object_to_file(model_path, tmp.name)
+    except Exception as e:
+      print(e)
+    checkpoint = torch.load(tmp, map_location=lambda storage, loc: storage)
+    tmp.close()
+  else:
+    checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
   print('loaded {}, epoch {}'.format(model_path, checkpoint['epoch']))
   state_dict_ = checkpoint['state_dict']
   state_dict = {}
@@ -92,7 +104,18 @@ def save_model(path, epoch, model, optimizer=None):
           'state_dict': state_dict}
   if not (optimizer is None):
     data['optimizer'] = optimizer.state_dict()
-  torch.save(data, path)
+  # torch.save(data, path)
+
+  if OSS_Bucket.oss_bucket:
+    tmp = tempfile.NamedTemporaryFile()
+    torch.save(data, tmp)
+    try:
+      OSS_Bucket.bucket.put_object_from_file(path, tmp.name)
+    except Exception as e:
+      print(e)
+    tmp.close()
+  else:
+    torch.save(data, path)
 
 def save_onnx_model(model, path="model.onnx"):
   dummy_input = torch.randn(1, 3, 288, 512, requires_grad=True)

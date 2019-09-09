@@ -14,6 +14,7 @@ from models.data_parallel import DataParallel
 from logger import Logger
 from datasets.dataset_factory import get_dataset
 from trains.train_factory import train_factory
+from utils.oss_tools import OSS_Bucket
 
 
 def main(opt):
@@ -22,6 +23,8 @@ def main(opt):
   Dataset = get_dataset(opt.dataset, opt.task)
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
+
+  OSS_Bucket.set(opt.oss)
 
   logger = Logger(opt)
 
