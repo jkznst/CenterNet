@@ -857,9 +857,9 @@ class TwoStageDLASeg(nn.Module):
         # out['wh'] = self.__getattr__('wh')(second_stage_conv1)
         # out['reg'] = self.__getattr__('reg')(second_stage_conv1)
 
-        out['hm_small'] = self.__getattr__('hm_small')(dla_feat[0])
-        out['wh_small'] = self.__getattr__('wh_small')(dla_feat[0])
-        out['reg_small'] = self.__getattr__('reg_small')(dla_feat[0])
+        out['hm_small'] = self.__getattr__('hm_small')(fine_supervision_feat)
+        out['wh_small'] = self.__getattr__('wh_small')(fine_supervision_feat)
+        out['reg_small'] = self.__getattr__('reg_small')(fine_supervision_feat)
         out['hm_medium'] = self.__getattr__('hm_medium')(dla_feat[1])
         out['wh_medium'] = self.__getattr__('wh_medium')(dla_feat[1])
         out['reg_medium'] = self.__getattr__('reg_medium')(dla_feat[1])
