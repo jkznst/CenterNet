@@ -154,13 +154,13 @@ class CTDetDataset(data.Dataset):
         if hm_mask[0, ct_int[1], ct_int[0]] > 0:
           draw_gaussian(hm_small[cls_id], ct_int, radius)
           # the same regions of adjcent levels are set as IR
-          ct_medium = ct / 2.0
-          ct_medium_int = ct_medium.astype(np.int32)
-          radius_medium = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
-          radius_medium = max(0, int(radius_medium))
-          radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
-          draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
-          hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
+          # ct_medium = ct / 2.0
+          # ct_medium_int = ct_medium.astype(np.int32)
+          # radius_medium = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
+          # radius_medium = max(0, int(radius_medium))
+          # radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
+          # draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
+          # hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
@@ -191,21 +191,21 @@ class CTDetDataset(data.Dataset):
         if hm_mask[0, ct_int[1] * 2, ct_int[0] * 2] > 0:
           draw_gaussian(hm_medium[cls_id], ct_int, radius)
           # the same regions of adjcent levels are set as IR
-          ct_small = ct * 2.0
-          ct_small_int = ct_small.astype(np.int32)
-          radius_small = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
-          radius_small = max(0, int(radius_small))
-          radius_small = self.opt.hm_gauss if self.opt.mse_loss else radius_small
-          draw_gaussian(hm_small[cls_id], ct_small_int, radius_small)
-          hm_small[cls_id, ct_small_int[1], ct_small_int[0]] = 0.9999
-
-          ct_big = ct / 2.0
-          ct_big_int = ct_big.astype(np.int32)
-          radius_big = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
-          radius_big = max(0, int(radius_big))
-          radius_big = self.opt.hm_gauss if self.opt.mse_loss else radius_big
-          draw_gaussian(hm_big[cls_id], ct_big_int, radius_big)
-          hm_big[cls_id, ct_big_int[1], ct_big_int[0]] = 0.9999
+          # ct_small = ct * 2.0
+          # ct_small_int = ct_small.astype(np.int32)
+          # radius_small = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
+          # radius_small = max(0, int(radius_small))
+          # radius_small = self.opt.hm_gauss if self.opt.mse_loss else radius_small
+          # draw_gaussian(hm_small[cls_id], ct_small_int, radius_small)
+          # hm_small[cls_id, ct_small_int[1], ct_small_int[0]] = 0.9999
+          #
+          # ct_big = ct / 2.0
+          # ct_big_int = ct_big.astype(np.int32)
+          # radius_big = gaussian_radius((math.ceil(h / 2.0), math.ceil(w / 2.0)))
+          # radius_big = max(0, int(radius_big))
+          # radius_big = self.opt.hm_gauss if self.opt.mse_loss else radius_big
+          # draw_gaussian(hm_big[cls_id], ct_big_int, radius_big)
+          # hm_big[cls_id, ct_big_int[1], ct_big_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
@@ -236,13 +236,13 @@ class CTDetDataset(data.Dataset):
         if hm_mask[0, ct_int[1] * 4, ct_int[0] * 4] > 0:
           draw_gaussian(hm_big[cls_id], ct_int, radius)
           # the same regions of adjcent levels are set as IR
-          ct_medium = ct * 2.0
-          ct_medium_int = ct_medium.astype(np.int32)
-          radius_medium = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
-          radius_medium = max(0, int(radius_medium))
-          radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
-          draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
-          hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
+          # ct_medium = ct * 2.0
+          # ct_medium_int = ct_medium.astype(np.int32)
+          # radius_medium = gaussian_radius((math.ceil(h * 2.0), math.ceil(w * 2.0)))
+          # radius_medium = max(0, int(radius_medium))
+          # radius_medium = self.opt.hm_gauss if self.opt.mse_loss else radius_medium
+          # draw_gaussian(hm_medium[cls_id], ct_medium_int, radius_medium)
+          # hm_medium[cls_id, ct_medium_int[1], ct_medium_int[0]] = 0.9999
           # draw_proposal_gaussian(proposal[0], ct_int, int(h), int(w))
           # draw_gaussian(proposal[0], ct_int, 2 * (radius + 1))
           # scale = np.sqrt(h * w)
