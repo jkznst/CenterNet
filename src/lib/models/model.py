@@ -22,14 +22,14 @@ _model_factory = {
   'res': get_pose_net, # default Resnet with deconv
   'dlav0': get_dlav0, # default DLAup
   'dla': get_dla_dcn,
-  'two_stage_dla': get_two_stage_dla_dcn,
+  'twostagedla': get_two_stage_dla_dcn,
   'resdcn': get_pose_net_dcn,
   'hourglass': get_large_hourglass_net,
 }
 
 _msp_model_factory = {
   'dla': get_msp_dla_dcn,
-  'two_stage_dla': get_two_stage_msp_dla_dcn
+  'twostagedla': get_two_stage_msp_dla_dcn
 }
 
 def create_model(arch, heads, head_conv, msp=False):
