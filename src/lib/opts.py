@@ -62,7 +62,7 @@ class opts(object):
     self.parser.add_argument('--arch', default='dla_34', 
                              help='model architecture. Currently tested'
                                   'res_18 | res_101 | resdcn_18 | resdcn_101 |'
-                                  'dlav0_34 | dla_34 | dla_60 | hourglass')
+                                  'dlav0_34 | dla_34 | dla_60 | hourglass | two_stage_dla_34')
     self.parser.add_argument('--head_conv', type=int, default=-1,
                              help='conv layer channels for output head'
                                   '0 for no conv layer'
@@ -70,6 +70,7 @@ class opts(object):
                                   '64 for resnets and 256 for dla.')
     self.parser.add_argument('--down_ratio', type=int, default=4,
                              help='output stride. Currently only supports 4.')
+    self.parser.add_argument('--msp', action='store_true', help='use multi-scale predict.')
 
     # input
     self.parser.add_argument('--input_res', type=int, default=-1, 
