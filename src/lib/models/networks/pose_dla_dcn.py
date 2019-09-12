@@ -735,64 +735,35 @@ class TwoStageDLASeg(nn.Module):
         # self.second_stage_dcn3 = DeformConv(channels[self.first_level], channels[self.first_level])
 
         self.heads = heads
-        self.scale = ['small', 'medium', 'big']
-        # for head in self.heads:
-        #     classes = self.heads[head]
-        #     in_channel = head_conv
-        #     if head == 'proposal' or head == 'scale':
-        #         in_channel = channels[self.first_level]
-        #     if head_conv > 0:
-        #         fc = nn.Sequential(
-        #             nn.Conv2d(in_channel, head_conv,
-        #                       kernel_size=3, padding=1, bias=True),
-        #             nn.ReLU(inplace=False),
-        #             nn.Conv2d(head_conv, classes,
-        #                       kernel_size=final_kernel, stride=1,
-        #                       padding=final_kernel // 2, bias=True))
-        #         fill_fc_weights(fc)
-        #         if 'hm' in head:
-        #             fc[-1].bias.data.fill_(-2.19)
-        #         elif 'proposal' in head:
-        #             fc[-1].bias.data.fill_(-2.19)
-        #     else:
-        #         fc = nn.Conv2d(in_channel, classes,
-        #                        kernel_size=final_kernel, stride=1,
-        #                        padding=final_kernel // 2, bias=True)
-        #         fill_fc_weights(fc)
-        #         if 'hm' in head:
-        #             fc.bias.data.fill_(-2.19)
-        #         elif 'proposal' in head:
-        #             fc.bias.data.fill_(-2.19)
-        #
-        #     self.__setattr__(head, fc)
-
         for head in self.heads:
             classes = self.heads[head]
-            for si, s in enumerate(self.scale):
-                in_channel = channels[self.first_level + si]
-                if head_conv > 0:
-                    fc = nn.Sequential(
-                        nn.Conv2d(in_channel, head_conv,
-                                  kernel_size=3, padding=1, bias=True),
-                        nn.ReLU(inplace=False),
-                        nn.Conv2d(head_conv, classes,
-                                  kernel_size=final_kernel, stride=1,
-                                  padding=final_kernel // 2, bias=True))
-                    fill_fc_weights(fc)
-                    if 'hm' in head:
-                        fc[-1].bias.data.fill_(-2.19)
-                    elif 'proposal' in head:
-                        fc[-1].bias.data.fill_(-2.19)
-                else:
-                    fc = nn.Conv2d(in_channel, classes,
-                                   kernel_size=final_kernel, stride=1,
-                                   padding=final_kernel // 2, bias=True)
-                    fill_fc_weights(fc)
-                    if 'hm' in head:
-                        fc.bias.data.fill_(-2.19)
-                    elif 'proposal' in head:
-                        fc.bias.data.fill_(-2.19)
-                self.__setattr__(head + '_' + s, fc)
+            in_channel = head_conv
+            if head == 'proposal' or head == 'scale':
+                in_channel = channels[self.first_level]
+            if head_conv > 0:
+                fc = nn.Sequential(
+                    nn.Conv2d(in_channel, head_conv,
+                              kernel_size=3, padding=1, bias=True),
+                    nn.ReLU(inplace=False),
+                    nn.Conv2d(head_conv, classes,
+                              kernel_size=final_kernel, stride=1,
+                              padding=final_kernel // 2, bias=True))
+                fill_fc_weights(fc)
+                if 'hm' in head:
+                    fc[-1].bias.data.fill_(-2.19)
+                elif 'proposal' in head:
+                    fc[-1].bias.data.fill_(-2.19)
+            else:
+                fc = nn.Conv2d(in_channel, classes,
+                               kernel_size=final_kernel, stride=1,
+                               padding=final_kernel // 2, bias=True)
+                fill_fc_weights(fc)
+                if 'hm' in head:
+                    fc.bias.data.fill_(-2.19)
+                elif 'proposal' in head:
+                    fc.bias.data.fill_(-2.19)
+
+            self.__setattr__(head, fc)
 
     def forward(self, x):
         x = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
