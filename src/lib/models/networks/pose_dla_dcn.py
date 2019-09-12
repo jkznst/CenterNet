@@ -805,8 +805,8 @@ class TwoStageDLASeg(nn.Module):
         second_stage_feat = self.second_stage_dla_up([second_stage_stride4, second_stage_stride8,
                                                       second_stage_stride16, second_stage_stride32])
         final_feat = []
-        for i in second_stage_feat:
-            final_feat.append(i.clone())  # [4s, 8s, 16s]
+        for i in range(self.last_level - self.first_level):
+            final_feat.append(second_stage_feat[i].clone())  # [4s, 8s, 16s]
 
         self.second_stage_ida_up(final_feat, 0, len(final_feat))
 
