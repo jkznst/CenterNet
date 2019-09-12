@@ -737,9 +737,8 @@ class TwoStageDLASeg(nn.Module):
         self.heads = heads
         for head in self.heads:
             classes = self.heads[head]
-            in_channel = head_conv
-            if head == 'proposal' or head == 'scale':
-                in_channel = channels[self.first_level]
+
+            in_channel = channels[self.first_level]
             if head_conv > 0:
                 fc = nn.Sequential(
                     nn.Conv2d(in_channel, head_conv,
@@ -767,9 +766,9 @@ class TwoStageDLASeg(nn.Module):
 
     def forward(self, x):
         x = self.base(x)  # [1s, 2s, 4s, 8s, 16s, 32s]
-        # base_feat = []
-        # for i in x:
-        #     base_feat.append(i.clone())
+        base_feat = []
+        for i in x:
+            base_feat.append(i.clone())
 
         dla_feat = self.dla_up(x)  # [4s, 8s, 16s, 32s]
         # for i in dla_feat:
@@ -791,9 +790,29 @@ class TwoStageDLASeg(nn.Module):
             offset = self.FA_conv_offset(out['scale'])
             fine_supervision_feat = self.feature_adaptation(fine_supervision_feat, offset, mask)
 
-        out['hm'] = self.__getattr__('hm')(fine_supervision_feat)
-        out['wh'] = self.__getattr__('wh')(fine_supervision_feat)
-        out['reg'] = self.__getattr__('reg')(fine_supervision_feat)
+        # second stage
+        second_stage_stride4 = self.second_stage_csa0(base_feat[2], dla_feat[0], fine_supervision_feat)
+        # second_stage_stride4 = dla_feat[0]
+        second_stage_stride8 = self.second_stage_bottleneck0(second_stage_stride4)
+        second_stage_stride8 = self.second_stage_csa1(base_feat[3], dla_feat[1], second_stage_stride8)
+        second_stage_stride16 = self.second_stage_bottleneck1(second_stage_stride8)
+        second_stage_stride16 = self.second_stage_csa2(base_feat[4], dla_feat[2], second_stage_stride16)
+        second_stage_stride32 = self.second_stage_bottleneck2(second_stage_stride16)
+        second_stage_stride32 = self.second_stage_csa3(base_feat[5], dla_feat[3], second_stage_stride32)
+        #
+        # second_stage_feat = self.second_stage_feature_fusion([second_stage_stride4, second_stage_stride8,
+        #                                                             second_stage_stride16, second_stage_stride32])
+        second_stage_feat = self.second_stage_dla_up([second_stage_stride4, second_stage_stride8,
+                                                      second_stage_stride16, second_stage_stride32])
+        final_feat = []
+        for i in second_stage_feat:
+            final_feat.append(i.clone())  # [4s, 8s, 16s]
+
+        self.second_stage_ida_up(final_feat, 0, len(final_feat))
+
+        out['hm'] = self.__getattr__('hm')(final_feat[-1])
+        out['wh'] = self.__getattr__('wh')(final_feat[-1])
+        out['reg'] = self.__getattr__('reg')(final_feat[-1])
 
         return [out]
 
