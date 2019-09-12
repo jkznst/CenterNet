@@ -86,7 +86,7 @@ class CtdetLoss(torch.nn.Module):
                                                batch['scale']) / valid_num / opt.num_stacks
 
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + \
-           opt.off_weight * off_loss + opt.proposal_weight * proposal_loss + opt.proposal_scale_weight * proposal_scale_loss
+           opt.off_weight * off_loss + opt.proposal_weight * proposal_loss + opt.scale_weight * proposal_scale_loss
 
     if opt.reg_proposal:
       loss_stats = {'loss': loss, 'proposal_loss': proposal_loss, 'scale_loss': proposal_scale_loss,
